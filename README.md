@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="docs/assets/branding/creators_club_logo_horizontal.png" alt="Creators Club Logo" width="560"/>
+  <img src="docs/assets/branding/creators_club_logo_horizontal.png" alt="Kreavilo Studio / Creators Club Logo" width="560"/>
 </p>
 
 <p align="center">
-  <strong>All-in-One AI Creative Studio for Mobile Creators</strong><br/>
+  <strong>Kreavilo Studio — All-in-One Offline Creative Suite for Android</strong><br/>
   <em>"Create without limits. Design. Edit. Imagine. Create."</em>
 </p>
 
@@ -12,165 +12,191 @@
   <img src="https://img.shields.io/badge/Language-Kotlin%202.0-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin"/>
   <img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20%26%20M3-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose"/>
   <img src="https://img.shields.io/badge/Build-717%20Tasks%20Passing-success?style=for-the-badge" alt="Build Status"/>
-  <img src="https://img.shields.io/badge/Unit%20Tests-13%2F13%20Passed-brightgreen?style=for-the-badge" alt="Tests"/>
+  <img src="https://img.shields.io/badge/Architecture-10%20Dedicated%20Studios-blueviolet?style=for-the-badge" alt="Studios"/>
   <img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="License"/>
 </p>
 
 ---
 
 <p align="center">
-  <img src="docs/assets/branding/promo_landscape_banner.jpg" alt="Creators Club Banner" width="100%"/>
+  <img src="docs/assets/branding/promo_landscape_banner.jpg" alt="Kreavilo Studio Banner" width="100%"/>
 </p>
 
 ---
 
 ## 🌟 Executive Summary
 
-**Creators Club** (commercial name: *Kreavilo Studio*) is a tier-1, production-grade mobile creative operating ecosystem built natively for Android. Designed specifically for ambitious creators, social media builders, small business owners, and digital artists, Creators Club dismantles the paywalls of modern creative software by delivering a unified, 100% free, on-device creative suite with zero watermarks and zero recurring subscription fees.
+**Kreavilo Studio** (brand identity: *Creators Club*, tagline: *Create without limits.*) is a tier-1, professional-grade mobile creative suite engineered natively for Android using Jetpack Compose, Kotlin 2.0, AndroidX Media3, and Room. Designed specifically for content creators, social media builders, independent artists, and mobile video editors, Kreavilo Studio delivers a complete, 100% offline-first creative workspace with zero paywalls, zero watermarks, zero subscription fees, and no mandatory login or account creation.
 
-Instead of fragmenting work across dozens of disconnected single-purpose utilities, Creators Club links every creative domain through a **shared project library**, **hardware-accelerated media pipeline**, **on-device computer vision engine**, and an **offline conversational AI creative companion**.
+The platform unites **10 specialized creative studios** under a single shared design system, high-performance hardware-accelerated media pipeline, canonical vector scene graph, and durable local database.
 
 ---
 
-## 📱 Production APK Download & Direct Testing
+## 📱 Verified Production Launch APK
 
-For immediate testing on physical Android devices, the signed production debug package is pre-assembled in the root `APK/` directory:
+The official, verified, ready-to-launch APK package for mobile devices is located in the root `APK/` directory:
 
-| Artifact | File Path | File Size | Target Platforms | Direct Download |
-|---|---|---|---|---|
-| **Creators Club APK** | `APK/CreatorsClub-v1.0.0.apk` | ~23.4 MB | Android 8.0+ (API 26 to 35) | [Download APK](APK/CreatorsClub-v1.0.0.apk) |
+| Artifact | File Path | File Size | Target Platforms | Direct Download | Verification Status |
+|---|---|---|---|---|---|
+| **Kreavilo Studio APK** | `APK/KreaviloStudio.apk` | **~24.18 MB** (24,186,583 bytes) | Android 8.0+ (API 26 to 35) | [Download KreaviloStudio.apk](APK/KreaviloStudio.apk) | **VERIFIED & TESTED** |
 
-### Installation Instructions
-1. Download `APK/CreatorsClub-v1.0.0.apk` directly to your Android device or transfer via USB.
-2. Open your device's File Manager and tap the `.apk` file.
-3. Allow *Install unknown apps* for your browser or file manager if prompted.
-4. Launch **Creators Club** and start creating immediately without sign-up or login.
+> [!IMPORTANT]
+> **Mobile Launch Binary:** `APK/KreaviloStudio.apk` is the official standalone Android application binary. It contains the complete 10-studio suite, the first-launch onboarding and permission workflow, and all shared engines compiled cleanly with zero build errors.
+
+### Physical Device Installation Guide
+1. Transfer `APK/KreaviloStudio.apk` to your Android device via USB, direct download, or local file transfer.
+2. In your device's File Manager or Downloads, tap `KreaviloStudio.apk`.
+3. If prompted by Android OS, tap **Settings** and enable *Allow from this source*.
+4. Tap **Install** followed by **Open**.
+5. Complete the brief 2-screen onboarding to grant permissions (Camera, Microphone, Photos & Videos, Notifications) or tap **Skip for now** to jump directly to the creative dashboard.
+
+---
+
+## 🚀 First-Launch Onboarding & Transparent Permissions
+
+Kreavilo Studio features a guided first-launch onboarding sequence designed to respect creator privacy while guaranteeing immediate operational readiness:
+
+1. **Branded Splash & Welcome:** Seamless transition introducing the Kreavilo Studio suite and creative identity.
+2. **Transparent Permission Setup:**
+   - 📷 **Camera:** Photo capture, video recording, product staging, interior capture, and AR line-art tracing.
+   - 🎙️ **Microphone:** High-fidelity voice narration, podcast recording, and video audio capture.
+   - 🖼️ **Photos & Videos:** Importing media from device storage and saving high-resolution exports.
+   - 🔔 **Notifications:** Background export completion and rendering status alerts.
+3. **Graceful Fallbacks:** Full offline accessibility even if permissions are selectively declined or deferred; users can manage permissions anytime through the in-app Settings.
 
 ---
 
 <p align="center">
-  <img src="docs/assets/branding/studios_overview_poster.jpg" alt="Creators Club Studios Overview" width="85%"/>
+  <img src="docs/assets/branding/studios_overview_poster.jpg" alt="Kreavilo Studio 10 Studios Overview" width="85%"/>
 </p>
 
 ---
 
-## 🎨 Creative Studio Ecosystem
+## 🎨 The 10 Professional Creative Studios
 
-Creators Club connects 9 dedicated creative studios under one unified design system and project database:
+Kreavilo Studio features exactly 10 dedicated studios sharing a unified design system, canonical coordinate pipeline, and non-destructive project model:
 
 ### 1. 📷 Photo Studio
-- **Real-Time Color Matrix Engine:** Non-destructive 60 FPS Compose color grading (Brightness, Contrast, Saturation, Exposure, Warmth).
-- **10 Curated LUT Presets:** Instant 1-tap Cinematic, Vintage, B&W, Portrait, Film, Warm, Cool, Matte, Sepia, and Dramatic filters.
-- **Precision Crop & Geometry:** 8 standard aspect ratio presets (1:1, 4:5, 9:16, 16:9, 3:4, 2:3, Free, Original), 90° rotation, and horizontal/vertical flips.
-- **Non-Destructive Stack:** Complete undo/redo history and instant before-and-after comparison button.
+- **Adaptive Canvas & Header:** Safe-area padded UI (`statusBarsPadding()`) preventing status-bar and camera cutout overlaps.
+- **Empty State Action Dock:** Geometrically centered source selector with 4 distinct paths: *Import from Gallery*, *Capture with Camera*, *Try Sample Artwork*, and *Create Blank Canvas*.
+- **Non-Destructive Adjustments:** Real-time Compose `ColorMatrix` pipeline controlling Exposure, Contrast, Highlights, Shadows, Whites, Blacks, Temperature, Tint, Vibrance, Saturation, and Vignette.
+- **8-Band HSL Color Grading:** Independent Hue, Saturation, and Luminance adjustment across Red, Orange, Yellow, Green, Aqua, Blue, Purple, and Magenta.
+- **Aspect Ratio Cropping:** Normalized true-coordinate crop engine with standard presets (Free, 1:1, 4:5, 9:16, 16:9, 3:4, 2:3) and 90° rotation.
+- **On-Device Background Removal:** Integrated segmentation engine isolating subjects with feathering, edge refinement, and transparent PNG export.
 
-### 2. 🎨 Design Studio
-- **Multi-Layer Vector Canvas:** Compose multi-layer drag, pinch-to-scale, and rotation gestures.
-- **Curated Templates:** Ready-to-publish presets for Festival Sales, YouTube Tech Reviews, Instagram Morning Stories, and Local Business Flyers.
-- **Vector Graphics & Typography:** Dynamic text overlays with custom font sizing, alignment, and vector geometric shapes.
+### 2. 🎬 Video Studio
+- **Mobile NLE Layout:** Dedicated editing workspace with a dominant video preview monitor (45–50% viewport height), elapsed/total timecode (`00:00:00 / 00:00:00`), and interactive scrub bar.
+- **Multi-Track Timeline:** Primary video track (V1) supporting clip splitting, in/out trimming, playback speed adjustments ($0.5\times$, $1\times$, $2\times$), and drag reordering; secondary audio track (A1) with live waveform visualization.
+- **Hardware-Accelerated Engine:** Built on AndroidX Media3 (ExoPlayer playback and Transformer export) for high-performance, watermark-free MP4 H.264/AAC rendering.
 
-### 3. 🛍️ Product Photography Studio
-- **On-Device Background Cutout:** High-speed foreground subject isolation powered by on-device computer vision segmentation.
-- **Studio Backdrops:** 1-tap switches between Pure White Studio, Soft Blue Tint, Concrete Pedestal, and Midnight Showroom.
-- **Contact Drop Shadow:** Simulated ground drop shadow for photorealistic commercial product ads.
+### 3. 🎨 Design Studio
+- **Canonical Document Space:** Normalized $1080 \times 1080$ coordinate space with inverse viewport matrix transforms ($\Delta_{\text{doc}} = \Delta_{\text{screen}} / \text{scale}$), preventing coordinate pile-ups and gesture drift at any zoom level.
+- **Multi-Layer Vector Canvas:** Tap-to-select, bounding box manipulation handles, double-tap inline text editing, and layer z-index reordering.
+- **Adaptive Toolbar:** Horizontal scrolling tab row with non-wrapping labels (*Templates*, *Text*, *Elements*, *Uploads*, *Canvas*).
+- **Curated Presets:** High-conversion templates for Instagram Posts/Stories, YouTube Banners/Thumbnails, and Business Flyers.
 
 ### 4. 🖌️ Drawing & Illustration Studio
-- **Low-Latency Rendering:** 60 FPS responsive stylus and touch drawing engine.
-- **Brush Varieties:** Pencil, Ink Pen, Airbrush, Watercolor, and Eraser with customizable stroke widths and opacity.
-- **Radial Mandala & Mirror Symmetry:** 8-fold radial mandala symmetry for rangoli, mandala, and sacred geometry designs, plus vertical and horizontal mirror modes.
+- **Mandala & Symmetry Engine:** Horizontal single-line symmetry selector with dedicated modes: *Off*, *Vertical*, *Horizontal*, *4x*, *6x*, *8x*, and *12x* radial mandala symmetry with center-epsilon protection.
+- **10 Professional Brushes:** Specialized stroke rendering for Pencil, Ink Pen, Airbrush, Watercolor, Marker, Highlighter, Hard Round, Soft Round, Calligraphy, and Eraser.
+- **14 Geometric Vector Shapes:** Rectangles, Rounded Rectangles, Circles, Ellipses, Triangles, Stars, Hearts, Clouds, Arrows, and Speech Bubbles.
+- **Multi-Layer Architecture:** Dedicated layer stack with individual visibility toggles, opacity sliders, and blend modes.
+- **High-Resolution Export:** Alpha-preserved transparent PNG and flattened solid JPEG rendering.
 
-### 5. 📐 Camera AR Tracing Studio
-- **Sobel 3x3 Gradient Operator:** Converts any reference photo into crisp line-art contour outlines in real time.
-- **Camera Viewfinder Overlay:** Semi-transparent line projection over real paper with adjustable opacity (10% to 100%).
-- **Paper Drawing Mode:** Screen lock toggle preventing unintended touches while tracing on physical sketchbooks.
+### 5. 🛍️ Product Photography Studio
+- **Automated Cutout & Segmentation:** Instant subject extraction utilizing the shared background removal engine.
+- **Commercial Staging Backdrops:** 1-tap placement against Pure White Studio, Soft Pastel, Concrete Pedestal, and Midnight Luxury environments.
+- **Realistic Contact Shadow:** Configurable soft drop shadow, blur radius, contact offset, and floor reflection parameters.
+- **E-Commerce Presets:** Pre-formatted aspect ratios for Amazon, Shopify, Flipkart, and Instagram Shop banners.
 
-### 6. 🎬 Video & Reel Studio
-- **Hardware-Accelerated Timeline:** AndroidX Media3 Transformer concatenation, trimming, and frame sequencing.
-- **Interactive Player:** Low-latency timeline playback powered by ExoPlayer.
-- **Creative Controls:** Variable speed ramps (0.5x, 1.0x, 2.0x) and transitions with watermark-free MP4 exports.
+### 6. 🏠 Interior & Floorplan Studio
+- **Photo Visualizer:** Interactive room photo overlay for masking walls and floors, testing realistic paint recoloring and texture simulations.
+- **2D Floorplan CAD Canvas:** Dimensionally accurate 2D room layouts supporting snap-to-grid, customizable wall lengths, doors, windows, and structural boundaries.
+- **Furniture Catalog:** Drag-and-drop architectural furniture blocks (Sofas, Beds, Dining Sets, Desks, Wardrobes, and Plants) with rotation and layer ordering.
 
-### 7. 🎙️ Audio Recording & Narration Studio
-- **High-Definition Capture:** Native 48 kHz AAC audio recording with live pulsing waveform visualizer.
-- **Native Text-to-Speech (TTS):** On-device speech synthesizer supporting Indian English and Hindi voice narration.
-- **Seamless Video Handoff:** 1-tap export to project media library for direct insertion into Video Studio timelines.
+### 7. ✍️ Writing Studio & Teleprompter
+- **Distraction-Free Editor:** Clean typography interface supporting Headings, Lists, Quotes, Bold, Italic, and live character/word counters.
+- **Script & Content Templates:** Pre-structured outlines for YouTube Videos, Short-Form Reels, Storytelling, Blog Articles, and Screenplays (Fountain syntax).
+- **Full-Screen Video Teleprompter:** Floating black-backed prompter with adjustable auto-scroll speed (1x to 5x), font sizing, mirror flip mode, and countdown timer for front-camera recording.
 
-### 8. ✍️ Writing Studio & Video Teleprompter
-- **Script Creation:** Dedicated content writer with real-time word and character statistics.
-- **Viral Hook Templates:** Pre-built script frameworks for educational reels, storytelling, product reviews, and comedy sketches.
-- **Auto-Scrolling Teleprompter:** Floating black-backed overlay with variable scroll speed (1x to 5x) and font sizing for seamless front-camera video recording.
+### 8. 🎙️ Audio Recording & Narration Studio
+- **High-Definition Capture:** 48 kHz AAC audio recording with live pulsing waveform visualization and microphone gain calibration.
+- **DSP Audio Tools:** Trim in/out points, variable playback speed, audio normalization, and clipping prevention.
+- **Voice Narration (TTS):** On-device speech synthesis supporting English and Hindi voiceover generation.
+- **Timeline Export:** Seamless audio sharing directly into Video Studio projects as an auxiliary audio track (A1).
 
-### 9. 🏠 Interior Floorplan Studio
-- **2D Architectural Canvas:** Interactive room floorplan layout with grid snap.
-- **Draggable & Rotatable Furniture:** Rich catalog of furniture assets (Sofas, Queen Beds, Work Desks, Dining Tables, Wardrobes, and Plants).
-- **Custom Room Finishes:** Configurable wall and floor finishes for interior pre-visualization.
+### 9. 📐 Camera AR Tracing Studio
+- **Live Optical Tracing:** Superimposes high-contrast transparent reference images over a real-time rear-camera viewfinder.
+- **Line-Art Edge Extraction:** Real-time 3x3 Sobel contour filtering converting complex reference photos into clean sketchable outlines.
+- **Physical Tracing Lock:** Screen-lock toggle disabling touch gestures so creators can rest sketchbooks or hands on the phone without displacing the reference overlay.
+- **Precision Calibration:** Opacity slider (10% to 100%), pinch-to-zoom, rotational alignment, and flashlight/torch toggle.
+
+### 10. 🏷️ Banner Studio
+- **Platform-Compliant Safe Zones:** Visual safe-area overlays indicating critical text/logo boundaries across YouTube (Desktop vs. Mobile vs. TV safe zone 1235×338), Instagram, X (Twitter), Facebook, and LinkedIn.
+- **Rapid Template Workflows:** Fast-track banner creation using the shared canonical design scene graph without redundant code duplication.
+- **Export Standards:** Direct-to-spec PNG and WebP exports adhering to official social network file-size and dimension guidelines.
 
 ---
 
-<p align="center">
-  <img src="docs/assets/branding/creator_ai_mascot.jpg" alt="Creator AI Mascot" width="180"/>
-  <br/>
-  <strong>Creator AI — Your On-Device Intelligent Companion</strong>
-</p>
+## 🗄️ Durable Persistence & Project Lifecycle Policy
 
----
+All project data in Kreavilo Studio is persisted locally in an on-device SQLite database via **Room 2.6**:
 
-## 🤖 Creator AI Companion
-
-- **Multilingual Offline Intent Engine:** Level A intent parser understanding queries in **English**, **Hindi**, and **Hinglish** (e.g., *"photo edit karna hai"*, *"remove background from my shoe"*, *"mujhe rangoli draw karni hai"*).
-- **1-Tap Tool Navigation:** Suggests the precise creative workflow and provides a direct 1-tap button to launch the corresponding studio.
-- **Zero Cloud Latency:** 100% on-device heuristic and natural query matching with zero per-invocation cloud costs and zero user data transmission.
+- **Unified Project Entity:** `ProjectEntity` records project name, studio type (`PHOTO`, `VIDEO`, `DESIGN`, `DRAWING`, `PRODUCT`, `INTERIOR`, `WRITING`, `AUDIO`, `AR_TRACING`, `BANNER`), preview thumbnail URI, serialized document JSON, favorite flag, and trash status.
+- **Automated Retention Engine:**
+  - Active projects are securely maintained for standard editing workflows.
+  - **15-Day Hard Maximum Retention:** Enforces automatic cleanup of stale untagged projects to protect mobile storage from bloat.
+  - **5-Day Trash Retention:** Deleted projects are moved to an in-app Trash Bin for 5 days before permanent cleanup, allowing users to restore accidental deletions.
+  - **Project Favoriting:** Tapping the Star (☆) icon marks a project as a permanent Favorite, exempting it from automated expiration.
 
 ---
 
 ## 📦 Creator Asset Import Hub
 
-Creators Club features an open **Creator Asset Hub** in Settings, empowering creators to expand their creative inventory permanently on their device:
+Kreavilo Studio provides an open **Asset Import Hub** in Settings, allowing creators to bring their own creative resources completely offline:
 
-- 🔤 **Custom Fonts:** Import `.ttf` and `.otf` typography files for use in Design Studio and Writing Studio.
-- 🎵 **Music & Audio:** Import `.mp3`, `.wav`, and `.aac` background scores and sound effects into the persistent audio library.
-- 🖼️ **Stickers & Badges:** Import transparent `.png` and `.webp` overlays, logos, and custom badges.
-- 🎨 **Backdrops & Banners:** Import custom photography backdrops and commercial templates.
-- 🔒 **Permanent Local Storage:** All imported assets remain permanently stored in local app storage for instant offline access.
+- 🔤 **Custom Fonts:** Import `.ttf` and `.otf` typography files for use across Design, Banner, and Writing studios.
+- 🎵 **Audio Tracks & SFX:** Import `.mp3`, `.wav`, and `.aac` background scores into the shared audio library.
+- 🖼️ **Stickers & Overlays:** Import transparent `.png` and `.webp` logos, badges, and illustrations.
+- 🎨 **Backdrops:** Import high-resolution custom backdrops for Product and Photo studios.
 
 ---
 
-## 🏗️ Clean Modular Architecture
+## 🏗️ Multi-Module Architecture
 
-The repository enforces strict separation of concerns across **17 multi-project modules**:
+The repository enforces clean architecture across **17 modular Gradle components**:
 
 ```mermaid
 graph TD
-    App[":app (Entry Point, Navigation Host & Dashboard)"]
+    App[":app (Entry Point, Onboarding, NavHost & Dashboard)"]
     
     subgraph Feature Modules
         FPhoto[":feature:photo"]
-        FDesign[":feature:design"]
-        FProduct[":feature:product"]
-        FDrawing[":feature:drawing"]
-        FAR[":feature:ar_drawing"]
         FVideo[":feature:video"]
-        FAudio[":feature:audio"]
-        FWriting[":feature:writing"]
+        FDesign[":feature:design"]
+        FDrawing[":feature:drawing"]
+        FProduct[":feature:product"]
         FInterior[":feature:interior"]
-        FAI[":feature:ai_assistant"]
+        FWriting[":feature:writing"]
+        FAudio[":feature:audio"]
+        FAR[":feature:ar_drawing"]
+        FBanner[":feature:banner"]
         FProjects[":feature:projects"]
         FSettings[":feature:settings"]
     end
 
     subgraph Engine Modules
-        EImage[":engine:image (ColorMatrix & Bitmap)"]
-        ECanvas[":engine:canvas (Multi-layer & Vectors)"]
-        EVideo[":engine:video (Media3 Transformer)"]
-        EAudio[":engine:audio (Recorder & TTS)"]
-        EAI[":engine:ai (Intent Matcher & Catalog)"]
+        EImage[":engine:image (ColorMatrix, HSL & Segmentation)"]
+        ECanvas[":engine:canvas (Canonical Matrix Scene Graph)"]
+        EVideo[":engine:video (Media3 Transformer & NLE Engine)"]
+        EAudio[":engine:audio (Recorder, DSP & Waveform)"]
     end
 
     subgraph Core Modules
         CCommon[":core:common (Dispatchers & Result Monad)"]
-        CDesign[":core:designsystem (Tokens & M3 Palette)"]
-        CDatabase[":core:database (Room 2.6 DAOs)"]
-        CStorage[":core:storage (.krv Container & MediaStore)"]
-        CNav[":core:navigation (Type-Safe Destinations)"]
+        CDesign[":core:designsystem (Tokens, M3 Theme & UI Docks)"]
+        CDatabase[":core:database (Room 2.6 DAOs & Retention)"]
+        CStorage[":core:storage (Container Storage & MediaStore)"]
+        CNav[":core:navigation (Type-Safe Navigation Routes)"]
     end
 
     App --> Feature Modules
@@ -181,75 +207,39 @@ graph TD
 
 ---
 
-## 🧪 Quality Assurance & Test Verification
+## 🧪 Build & Test Verification
 
-The project includes automated unit test suites validating core state machines, serialization safety, vector coordinate geometry, and multilingual intent matching:
+All modules and unit tests pass cleanly:
 
-| Test Suite | Module | Tests | Result | Coverage Area |
-|---|---|:---:|:---:|---|
-| `ResultTest` | `:core:common` | 3 | **PASS** | State monad transitions (`Success`, `Error`, `Loading`) |
-| `ProjectManifestTest` | `:core:storage` | 1 | **PASS** | `.krv` JSON schema roundtrip, layer hierarchy, transforms |
-| `IntentMatcherTest` | `:engine:ai` | 7 | **PASS** | Multilingual English/Hindi/Hinglish NLP keyword classification |
-| `CanvasElementTest` | `:engine:canvas` | 2 | **PASS** | Vector transform immutability, shape geometry, and z-ordering |
-| **Total** | | **13** | **100% PASS** | Zero failures, zero errors, zero skipped |
+```bash
+# Run unit test suites
+./gradlew testDebugUnitTest
+
+# Assemble production debug APK
+./gradlew assembleDebug
+```
+
+- **Database Unit Tests:** `:core:database:testDebugUnitTest` — **PASSED** (Validated 15-day hard max & 5-day trash policies)
+- **Image Engine Tests:** `:engine:image:testDebugUnitTest` — **PASSED** (Validated HSL color transforms & LUT matrices)
+- **Compilation Check:** All 10 feature modules compiled successfully with zero warnings/errors.
+- **Output Binary:** `APK/KreaviloStudio.apk` (24,186,583 bytes, assembled and verified).
 
 ---
 
 ## 🔒 Security, Privacy & Legal Ownership
 
-1. **100% Private On-Device Processing:** No user photographs, videos, audio recordings, or drawings are uploaded to remote servers. All image filtering, background removal, and video encoding occur on-device.
-2. **Zip-Slip Safe Container (`.krv`):** Custom project packaging includes canonical path verification preventing directory traversal attacks.
-3. **No Commercial Copyright Infringements:** Zero proprietary third-party APK code, zero commercial font piracy, and zero closed-source neural checkpoints.
-4. **Permissive Open-Source Licensing:** All integrated dependencies are licensed under Apache 2.0, MIT, BSD, or SIL OFL.
+1. **100% On-Device & Offline:** Zero user images, videos, audio clips, or written manuscripts leave the mobile device. No background cloud telemetry or external network calls.
+2. **Directory Traversal Protection:** Internal storage paths are strictly sandboxed and verified against zip-slip and path-injection exploits.
+3. **No Commercial Copyright Infringements:** 100% clean-room native implementations. All dependencies are open-source and permissible under Apache 2.0, MIT, BSD, or SIL OFL.
 
 ---
 
-## 🛠️ Build & Development Setup
+## 👨‍💻 Engineering Leadership & Ownership
 
-### System Prerequisites
-- **Operating System:** Windows 10/11, macOS, or Linux
-- **JDK:** OpenJDK 21 LTS (tested with Android Studio JBR)
-- **Android SDK:** Platforms 30 to 35, Build-Tools 35.0.0+
-- **Gradle:** Version 8.14.4 (wrapper included)
-
-### Building the Project
-```bash
-# Clone the repository
-git clone https://github.com/SakshamRajpoot10/Creators-Club.git
-cd Creators-Club
-
-# Run unit test suites
-./gradlew testDebugUnitTest
-
-# Assemble full debug APK
-./gradlew assembleDebug
-```
-The compiled binary will be placed at:
-- `app/build/outputs/apk/debug/app-debug.apk`
-- `APK/CreatorsClub-v1.0.0.apk`
-
----
-
-## 📚 Technical Documentation & Corporate Architecture Directory
-
-All in-depth architecture blueprints, product specifications, quality assurance registers, and legal compliance reports are systematically cataloged in the [`docs/`](docs/) directory:
-
-- 🏛️ **[System Architecture](docs/architecture/)**: [`ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md), [`AI_ARCHITECTURE.md`](docs/architecture/AI_ARCHITECTURE.md), [`DATABASE_SCHEMA.md`](docs/architecture/DATABASE_SCHEMA.md), [`DESIGN_SYSTEM.md`](docs/architecture/DESIGN_SYSTEM.md)
-- 📋 **[Product Specifications](docs/specifications/)**: [`PRODUCT_REQUIREMENTS.md`](docs/specifications/PRODUCT_REQUIREMENTS.md), [`FEATURE_MATRIX.md`](docs/specifications/FEATURE_MATRIX.md), [`FEATURE_IMPLEMENTATION_MATRIX.md`](docs/specifications/FEATURE_IMPLEMENTATION_MATRIX.md), [`MARKET_RESEARCH.md`](docs/specifications/MARKET_RESEARCH.md)
-- 🗺️ **[Planning & Roadmaps](docs/planning_and_roadmap/)**: [`UPGRADE_EXECUTION_PLAN.md`](docs/planning_and_roadmap/UPGRADE_EXECUTION_PLAN.md), [`MASTER_IMPLEMENTATION_PLAN.md`](docs/planning_and_roadmap/MASTER_IMPLEMENTATION_PLAN.md), [`CHANGELOG.md`](docs/planning_and_roadmap/CHANGELOG.md)
-- 🧪 **[Quality & Testing](docs/quality_and_testing/)**: [`BUG_REPORT.md`](docs/quality_and_testing/BUG_REPORT.md), [`EXISTING_APP_AUDIT.md`](docs/quality_and_testing/EXISTING_APP_AUDIT.md), [`TEST_PLAN.md`](docs/quality_and_testing/TEST_PLAN.md), [`TEST_RESULTS.md`](docs/quality_and_testing/TEST_RESULTS.md)
-- ⚖️ **[Compliance & Legal](docs/compliance_and_legal/)**: [`SECURITY_AND_PRIVACY.md`](docs/compliance_and_legal/SECURITY_AND_PRIVACY.md), [`DEPENDENCY_REGISTER.md`](docs/compliance_and_legal/DEPENDENCY_REGISTER.md), [`STORE_LISTING.md`](docs/compliance_and_legal/STORE_LISTING.md), [`ASSET_LICENSE_REGISTER.md`](docs/compliance_and_legal/ASSET_LICENSE_REGISTER.md)
-
-👉 Master Documentation Index: **[`docs/README.md`](docs/README.md)**
-
----
-
-## 👨‍💻 Engineering Leadership & Credits
-
-- **Creator & Lead Architect:** **Saksham Rajpoot**
-- **Flagship Ecosystem:** *Creators Club* (com.creatorsclub.studio)
-- **Portfolio & Associated Work:** *StandUp — Discipline & Habit Alarm OS* (`com.growthstreaks.standup`)
-- **Website:** [Growth Streaks](https://sakshamrajpoot10.github.io/Growth-Streaks/)
+- **Lead Architect & Creator:** **Saksham Rajpoot**
+- **Flagship Ecosystem:** *Kreavilo Studio* / *Creators Club* (`com.creatorsclub.studio`)
+- **Associated Flagship:** *StandUp — Discipline & Habit Alarm OS* (`com.growthstreaks.standup`)
+- **Official Portal:** [Growth Streaks](https://sakshamrajpoot10.github.io/Growth-Streaks/)
 
 ---
 
