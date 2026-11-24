@@ -40,6 +40,21 @@ fun ArDrawingScreen(
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.CAMERA
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasCameraPermission = isGranted
+    }
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -66,6 +81,19 @@ fun ArDrawingScreen(
                     }
                 },
                 actions = {
+                    // Camera Viewfinder Permission Toggle
+                    IconButton(onClick = {
+                        if (!hasCameraPermission) {
+                            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    }) {
+                        Icon(
+                            imageVector = if (hasCameraPermission) Icons.Filled.Videocam else Icons.Outlined.VideocamOff,
+                            contentDescription = if (hasCameraPermission) "Camera Active" else "Enable Camera Viewfinder",
+                            tint = if (hasCameraPermission) KreaviloColors.Primary else KreaviloColors.Error
+                        )
+                    }
+
                     // Import Reference Image
                     IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
                         Icon(

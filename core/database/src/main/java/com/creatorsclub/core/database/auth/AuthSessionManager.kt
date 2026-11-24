@@ -75,6 +75,11 @@ class AuthSessionManager(private val context: Context) {
         _hasCompletedPermissions.value = completed
     }
 
+    fun setOnboardingCompleted(completed: Boolean = true) {
+        prefs.edit().putBoolean(KEY_COMPLETED_ONBOARDING, completed).apply()
+        _hasCompletedOnboarding.value = completed
+    }
+
     private fun hashPassword(password: CharSequence): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val bytes = digest.digest(("kreavilo_salt_" + password.toString()).toByteArray(Charsets.UTF_8))

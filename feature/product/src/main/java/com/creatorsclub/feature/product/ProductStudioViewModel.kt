@@ -47,6 +47,16 @@ class ProductStudioViewModel @Inject constructor(
         }
     }
 
+    fun loadBitmapDirectly(bitmap: Bitmap) {
+        _uiState.update {
+            it.copy(
+                originalBitmap = bitmap,
+                cutoutBitmap = null,
+                hasRemovedBackground = false
+            )
+        }
+    }
+
     fun loadSampleProduct() {
         val width = 600
         val height = 600

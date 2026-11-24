@@ -86,6 +86,10 @@ class PhotoStudioViewModel @Inject constructor(
         redoStack.clear()
     }
 
+    fun loadImageFromBitmap(bitmap: Bitmap) {
+        setSourceBitmap(bitmap)
+    }
+
     fun createBlankCanvas(width: Int = 1080, height: Int = 1080, color: Int = Color.WHITE) {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)

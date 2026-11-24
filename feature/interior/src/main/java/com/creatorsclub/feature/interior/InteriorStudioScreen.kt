@@ -35,7 +35,23 @@ fun InteriorStudioScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    var roomPhotoBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+
+    val takeRoomPicLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: android.graphics.Bitmap? ->
+        roomPhotoBitmap = bitmap
+    }
+
+    val cameraPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            takeRoomPicLauncher.launch(null)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -57,6 +73,26 @@ fun InteriorStudioScreen(
                     }
                 },
                 actions = {
+                    // Capture Room Reference Photo
+                    IconButton(onClick = {
+                        val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.CAMERA
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+                        if (hasCamera) {
+                            takeRoomPicLauncher.launch(null)
+                        } else {
+                            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Outlined.PhotoCamera,
+                            contentDescription = "Capture Room Reference",
+                            tint = KreaviloColors.Primary
+                        )
+                    }
+
                     if (uiState.selectedFurnitureId != null) {
                         IconButton(onClick = { viewModel.rotateSelected() }) {
                             Icon(Icons.AutoMirrored.Filled.RotateRight, contentDescription = "Rotate", tint = KreaviloColors.TextPrimary)

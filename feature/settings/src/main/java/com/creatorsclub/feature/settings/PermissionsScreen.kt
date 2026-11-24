@@ -90,8 +90,33 @@ fun PermissionsScreen(
                 usedFor = "All Studios (Import & Lossless Export)",
                 icon = Icons.Outlined.FolderOpen,
                 permissions = storagePermissions
+            ),
+            PermissionItem(
+                id = "notifications",
+                title = "Notifications (Optional)",
+                description = "Receive instant alerts when 4K video exports, audio rendering, or background processing complete.",
+                usedFor = "Background Video & Audio Renderers",
+                icon = Icons.Outlined.Notifications,
+                permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    listOf(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    emptyList()
+                }
             )
         )
+    }
+
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                refreshKey++
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(

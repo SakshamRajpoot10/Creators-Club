@@ -31,7 +31,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(
     onNavigateToHome: () -> Unit,
-    onNavigateToPermissions: () -> Unit,
+    onNavigateToOnboarding: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -50,12 +50,12 @@ fun SplashScreen(
             animationSpec = tween(durationMillis = 800, easing = LinearEasing)
         )
 
-        // Smooth 900ms branded splash duration, then inspect permissions status
+        // Smooth 900ms branded splash duration, then inspect first-launch onboarding status
         delay(350)
-        val hasCompletedPermissions = authManager.hasCompletedPermissions.value
+        val hasCompletedOnboarding = authManager.hasCompletedOnboarding.value
 
-        if (!hasCompletedPermissions) {
-            onNavigateToPermissions()
+        if (!hasCompletedOnboarding) {
+            onNavigateToOnboarding()
         } else {
             onNavigateToHome()
         }

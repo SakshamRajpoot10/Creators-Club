@@ -37,7 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.creatorsclub.core.database.auth.AuthSessionManager
 import com.creatorsclub.core.designsystem.theme.KreaviloColors
 import com.creatorsclub.core.designsystem.theme.KreaviloTheme
-import com.creatorsclub.studio.onboarding.PermissionOnboardingScreen
+import com.creatorsclub.studio.onboarding.OnboardingScreen
 import com.creatorsclub.studio.ui.OfflineStudioSheet
 import com.creatorsclub.studio.ui.SplashScreen
 import com.creatorsclub.feature.ar_drawing.ArDrawingScreen
@@ -102,20 +102,20 @@ class MainActivity : ComponentActivity() {
                                     popUpTo("splash") { inclusive = true }
                                 }
                             },
-                            onNavigateToPermissions = {
-                                navController.navigate("permission_onboarding") {
+                            onNavigateToOnboarding = {
+                                navController.navigate("onboarding") {
                                     popUpTo("splash") { inclusive = true }
                                 }
                             }
                         )
                     }
 
-                    // First-Time Permission Onboarding
-                    composable("permission_onboarding") {
-                        PermissionOnboardingScreen(
-                            onPermissionsCompleted = {
+                    // First-Time 2-Step Onboarding (Welcome + Permission Workspace Setup)
+                    composable("onboarding") {
+                        OnboardingScreen(
+                            onOnboardingCompleted = {
                                 navController.navigate("main_root") {
-                                    popUpTo("permission_onboarding") { inclusive = true }
+                                    popUpTo("onboarding") { inclusive = true }
                                 }
                             }
                         )
