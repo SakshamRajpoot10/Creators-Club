@@ -6,54 +6,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] — Phase 0 & Phase 1 Execution (2026-11-24)
+## [1.0.0-alpha01] — Full Multi-Module Ecosystem & Studio Integration (2026-11-24)
 
 ### Added
-- **Multi-Module Architecture & First Production Build:**
-  - Built and verified `:app`, `:core:common`, `:core:designsystem`, `:core:database`, `:core:storage`, `:core:navigation`, `:engine:image`, and `:feature:photo`.
-  - Compiled and packaged release-ready debug APK `app-debug.apk` (16.5 MB) via Gradle 8.14.4 & OpenJDK 21.
-- **Room Database & Persistence (`:core:database`):**
-  - Implemented Room 2.6 database `KreaviloDatabase` with entities `ProjectEntity`, `AssetEntity`, `FeatureRegistryEntity`, and `AssistantChatEntity`.
-  - Created full DAOs (`ProjectDao`, `AssetDao`, `FeatureRegistryDao`, `AssistantChatDao`) supporting active projects, favorites, soft delete (30-day trash), and instant query search.
-- **Unified Project Storage & `.krv` Packaging (`:core:storage`):**
-  - Created `ProjectSerializer` for non-destructive packaging into `.krv` archive (zip container with `manifest.json`, `thumbnail.webp`, and `assets/`).
-  - Added strict Zip Slip directory traversal security verification.
-  - Implemented `StorageManager` with Android Scoped Storage MediaStore export to public Pictures/DCIM gallery without root paths.
-- **Type-Safe Navigation (`:core:navigation`):**
-  - Implemented Kotlinx Serialization type-safe routes (`KreaviloDestination`) for Home, Studios, Create, Projects, Settings, PhotoStudio, DesignStudio, VideoStudio, DrawingStudio, ARDrawingStudio, ProductStudio, InteriorStudio, WritingStudio, AudioStudio, and CreatorAI.
-- **Non-Destructive Photo Engine (`:engine:image`):**
-  - Implemented `ColorMatrixProcessor` for 60 FPS real-time Compose filter previews (Brightness, Contrast, Saturation, Exposure, Warmth).
-  - Implemented 10 artistic LUT presets: Original, Cinematic, Vintage, B&W, Portrait, Film, Warm, Cool, Matte, Dramatic.
-  - Implemented `CropTransformState` supporting 8 aspect ratios (1:1, 4:5, 9:16, 16:9, 3:4, 2:3, Free, Original), 90° rotation, and horizontal/vertical flips.
-  - Implemented `BitmapProcessor` for full-resolution background rendering during export.
-- **Interactive Photo Studio UI (`:feature:photo`):**
-  - Built `PhotoStudioScreen` and `PhotoStudioViewModel` with undo/redo stack, before-and-after comparison button, filter carousel, granular sliders, and direct gallery export.
-- **Adaptive Launcher Icons:**
-  - Created custom Kreavilo star vector icons (`ic_launcher.xml` and `ic_launcher_round.xml`).
-- **Master Implementation Plan (`MASTER_IMPLEMENTATION_PLAN.md`):** Complete 37-section specification established and saved in project root.
-- **Hardware & Toolchain Environment Audit:**
-  - Verified AMD Ryzen 7 7735HS (8C/16T), 16 GB RAM, Radeon Graphics on Windows 11.
-  - Verified Android SDK at `C:\Users\315082\AppData\Local\Android\Sdk` (build-tools 35.0.0, 36.0.0, 37.0.0; platforms android-30, android-36, android-37.0).
-  - Verified OpenJDK 21 LTS at `C:\Program Files\Android\Android Studio1\jbr\bin\java.exe`.
-  - Initialized Git repository on branch `main`.
-- **Complete Core Project Documentation Suite:**
-  - `README.md`
-  - `PRODUCT_REQUIREMENTS.md` (Comprehensive PRD)
-  - `IMPLEMENTATION_PLAN.md` (Phased technical roadmap)
-  - `MARKET_RESEARCH.md` & `COMPETITOR_ANALYSIS.md` (Snapseed, Canva, CapCut, Photoroom, ibis Paint X analysis)
-  - `ARCHITECTURE.md` (Multi-module architecture, `.krv` container schema, data flow)
-  - `DESIGN_SYSTEM.md` (Material 3 tokens, #405BC7 light-theme palette, Manrope/Inter typography, Home & Creator AI layout specifications)
-  - `FEATURE_MATRIX.md` (30+ feature mappings across 10 studios)
-  - `SOURCE_CODE_REFERENCES.md` (Audited open-source reference library & copyleft quarantine protocol)
-  - `AI_ARCHITECTURE.md` (Creator AI 3-tier system: Level A universal SQLite FTS5 registry, Level B local SLM, allowlisted action dispatcher)
-  - `DATABASE_SCHEMA.md` (Room database entities, indices, and scoped storage hierarchy)
-  - `DEPENDENCY_REGISTER.md` (Permissive license catalog: Apache 2.0, MIT, BSD, SIL OFL)
-  - `MODEL_LICENSE_REGISTER.md` (AI model audit & integrity checks)
-  - `SECURITY_AND_PRIVACY.md` (Offline-first privacy by design, decompression bomb protection)
-  - `THIRD_PARTY_NOTICES.md` & `ASSET_LICENSE_REGISTER.md` (Attribution & clean asset registry)
-  - `COST_REPORT.md` (Strict ₹0 budget infrastructure verification)
-  - `TEST_PLAN.md` & `TEST_RESULTS.md` (Phase 0 environment tests passed 8/8)
-  - `PERFORMANCE_REPORT.md` (Hardware profiling tiers: Basic, Mid, High)
-  - `KNOWN_LIMITATIONS.md` (Technical trade-offs, PhonePe Appstore dual-store strategy)
-  - `RELEASE_CHECKLIST.md` (Release criteria and quality gates)
-  - `STORE_LISTING.md` (English & Hindi store listings ready for PhonePe Appstore)
+- **Complete 17-Module Architecture:**
+  - `:app` — Main entry point, dashboard, bottom bar navigation, and studio routing.
+  - `:core:common` — Dispatchers and `Result` state monad.
+  - `:core:designsystem` — Brand color palette (`#405BC7`, `#7664C7`, `#F7F8FC`, `#182033`), typography, components.
+  - `:core:database` — Room 2.6 DB (`KreaviloDatabase`) with 4 entities, DAOs, and automatic migrations.
+  - `:core:storage` — `.krv` zip project serializer with Zip-Slip path validation and MediaStore exporter.
+  - `:core:navigation` — Type-safe navigation routes.
+  - `:engine:image` — Non-destructive color matrix math, 10 LUT filters, crop presets, full-res rendering.
+  - `:engine:canvas` — Interactive vector canvas, drag gestures, z-ordering, default templates.
+  - `:engine:video` — Media3 Transformer video exporter and ExoPlayer timeline preview.
+  - `:engine:audio` — High-resolution AAC recorder and Native Text-To-Speech engine.
+  - `:engine:ai` — Level A Intent Matcher with multilingual query parser (English, Hindi, Hinglish).
+  - `:feature:photo` — Full photo editing studio with undo/redo stack and compare mode.
+  - `:feature:design` — Social banner, poster, and ad designer with template picker.
+  - `:feature:product` — High-speed on-device background cutout, drop shadows, and studio backdrops.
+  - `:feature:drawing` — 60 FPS drawing studio with 8-fold radial mandala / rangoli symmetry.
+  - `:feature:ar_drawing` — Camera AR tracing with Sobel 3x3 edge outline filter and opacity control.
+  - `:feature:video` — Multi-clip video timeline editor with speed ramps and transitions.
+  - `:feature:audio` — Audio recording studio with pulsing waveform visualizer and TTS narration.
+  - `:feature:writing` — Script editor with word counter, YouTube hooks, and auto-scrolling teleprompter.
+  - `:feature:interior` — 2D floorplan editor with draggable and rotatable furniture elements.
+  - `:feature:ai_assistant` — Conversational companion with 1-tap "Open Tool" navigation.
+  - `:feature:projects` — Projects library with favorites and 30-day soft-delete trash recovery.
+  - `:feature:settings` — Storage manager (cache clearing) and open-source licenses viewer.
+
+### Testing & Verification
+- **Automated Unit Tests:**
+  - 13 out of 13 unit tests passed with 0 failures, 0 errors, 0 skipped.
+  - Verified `Result` state monad (`ResultTest`).
+  - Verified `.krv` JSON manifest serialization & deserialization (`ProjectManifestTest`).
+  - Verified multilingual query parsing and tool matching (`IntentMatcherTest`).
+  - Verified canvas vector transformations and shapes (`CanvasElementTest`).
+- **Binary Packaging:**
+  - Debug APK built and verified at `app/build/outputs/apk/debug/app-debug.apk` (22.75 MB).
+  - 717 Gradle tasks executed/cached successfully.
+
+---
+
+## [0.1.0] — Foundation & Master Specifications (2026-11-24)
+
+### Added
+- Created complete documentation suite (24 architectural, technical, security, and market research documents).
+- Verified development environment (AMD Ryzen 7 7735HS, 16 GB RAM, Android SDK 35, OpenJDK 21 LTS).
+- Initialized multi-module Gradle build and Git repository.

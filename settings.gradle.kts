@@ -34,6 +34,21 @@ include(":core:navigation")
 
 // Core engines
 include(":engine:image")
+include(":engine:canvas")
+include(":engine:video")
+include(":engine:audio")
+include(":engine:ai")
 
 // Features
 include(":feature:photo")
+include(":feature:design")
+include(":feature:product")
+include(":feature:drawing")
+include(":feature:ar_drawing")
+include(":feature:video")
+include(":feature:audio")
+include(":feature:writing")
+include(":feature:interior")
+include(":feature:ai_assistant")
+include(":feature:projects")
+include(":feature:settings")

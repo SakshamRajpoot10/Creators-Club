@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -24,13 +25,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.creatorsclub.core.designsystem.theme.KreaviloColors
 import com.creatorsclub.core.designsystem.theme.KreaviloTheme
+import com.creatorsclub.feature.ai_assistant.CreatorAiScreen
+import com.creatorsclub.feature.ai_assistant.CreatorAiViewModel
+import com.creatorsclub.feature.ar_drawing.ArDrawingScreen
+import com.creatorsclub.feature.ar_drawing.ArDrawingViewModel
+import com.creatorsclub.feature.audio.AudioStudioScreen
+import com.creatorsclub.feature.audio.AudioStudioViewModel
+import com.creatorsclub.feature.design.DesignStudioScreen
+import com.creatorsclub.feature.design.DesignStudioViewModel
+import com.creatorsclub.feature.drawing.DrawingStudioScreen
+import com.creatorsclub.feature.drawing.DrawingStudioViewModel
+import com.creatorsclub.feature.interior.InteriorStudioScreen
+import com.creatorsclub.feature.interior.InteriorStudioViewModel
 import com.creatorsclub.feature.photo.PhotoStudioScreen
 import com.creatorsclub.feature.photo.PhotoStudioViewModel
+import com.creatorsclub.feature.product.ProductStudioScreen
+import com.creatorsclub.feature.product.ProductStudioViewModel
+import com.creatorsclub.feature.projects.ProjectsScreen
+import com.creatorsclub.feature.projects.ProjectsViewModel
+import com.creatorsclub.feature.settings.SettingsScreen
+import com.creatorsclub.feature.settings.SettingsViewModel
+import com.creatorsclub.feature.video.VideoStudioScreen
+import com.creatorsclub.feature.video.VideoStudioViewModel
+import com.creatorsclub.feature.writing.WritingStudioScreen
+import com.creatorsclub.feature.writing.WritingStudioViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -40,21 +64,140 @@ class MainActivity : ComponentActivity() {
         setContent {
             KreaviloTheme {
                 val navController = rememberNavController()
+
+                fun navigateToStudio(studioId: String) {
+                    when (studioId.lowercase()) {
+                        "photo" -> navController.navigate("photo_studio")
+                        "design" -> navController.navigate("design_studio")
+                        "product" -> navController.navigate("product_studio")
+                        "drawing" -> navController.navigate("drawing_studio")
+                        "ar_drawing" -> navController.navigate("ar_drawing_studio")
+                        "video" -> navController.navigate("video_studio")
+                        "audio" -> navController.navigate("audio_studio")
+                        "writing" -> navController.navigate("writing_studio")
+                        "interior" -> navController.navigate("interior_studio")
+                        else -> navController.navigate("photo_studio")
+                    }
+                }
+
                 NavHost(navController = navController, startDestination = "home") {
+                    // Home Screen
                     composable("home") {
                         MainDashboardScreen(
-                            onNavigateToStudio = { studioId ->
-                                if (studioId == "photo") {
-                                    navController.navigate("photo_studio")
-                                }
+                            onNavigateToStudio = ::navigateToStudio,
+                            onNavigateToAi = { navController.navigate("creator_ai") },
+                            onNavigateToProjects = { navController.navigate("projects") },
+                            onNavigateToSettings = { navController.navigate("settings") }
+                        )
+                    }
+
+                    // 1. Photo Studio
+                    composable("photo_studio") {
+                        val viewModel: PhotoStudioViewModel = hiltViewModel()
+                        PhotoStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 2. Design Studio
+                    composable("design_studio") {
+                        val viewModel: DesignStudioViewModel = hiltViewModel()
+                        DesignStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 3. Product Photography Studio
+                    composable("product_studio") {
+                        val viewModel: ProductStudioViewModel = hiltViewModel()
+                        ProductStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 4. Drawing & Painting Studio
+                    composable("drawing_studio") {
+                        val viewModel: DrawingStudioViewModel = hiltViewModel()
+                        DrawingStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 5. Camera AR Tracing Studio
+                    composable("ar_drawing_studio") {
+                        val viewModel: ArDrawingViewModel = hiltViewModel()
+                        ArDrawingScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 6. Video Studio
+                    composable("video_studio") {
+                        val viewModel: VideoStudioViewModel = hiltViewModel()
+                        VideoStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 7. Audio Studio
+                    composable("audio_studio") {
+                        val viewModel: AudioStudioViewModel = hiltViewModel()
+                        AudioStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 8. Writing Studio & Script Teleprompter
+                    composable("writing_studio") {
+                        val viewModel: WritingStudioViewModel = hiltViewModel()
+                        WritingStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 9. Interior Floorplan Studio
+                    composable("interior_studio") {
+                        val viewModel: InteriorStudioViewModel = hiltViewModel()
+                        InteriorStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // Creator AI Companion
+                    composable("creator_ai") {
+                        val viewModel: CreatorAiViewModel = hiltViewModel()
+                        CreatorAiScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToStudio = ::navigateToStudio
+                        )
+                    }
+
+                    // Projects Library
+                    composable("projects") {
+                        val viewModel: ProjectsViewModel = hiltViewModel()
+                        ProjectsScreen(
+                            viewModel = viewModel,
+                            onOpenProject = { project ->
+                                navigateToStudio(project.studioType)
                             }
                         )
                     }
-                    composable("photo_studio") {
-                        val photoViewModel: PhotoStudioViewModel = hiltViewModel()
-                        PhotoStudioScreen(
-                            viewModel = photoViewModel,
-                            onNavigateBack = { navController.popBackStack() }
+
+                    // Settings Screen
+                    composable("settings") {
+                        val viewModel: SettingsViewModel = hiltViewModel()
+                        SettingsScreen(
+                            viewModel = viewModel
                         )
                     }
                 }
@@ -74,10 +217,14 @@ data class StudioItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainDashboardScreen(
-    onNavigateToStudio: (String) -> Unit
+    onNavigateToStudio: (String) -> Unit,
+    onNavigateToAi: () -> Unit,
+    onNavigateToProjects: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
+    val scrollState = rememberScrollState()
 
     val studios = remember {
         listOf(
@@ -88,8 +235,14 @@ fun MainDashboardScreen(
             StudioItem("product", "Product Studio", Icons.Outlined.ShoppingBag, KreaviloColors.ProductStudioBadge, KreaviloColors.ProductStudioCardBg),
             StudioItem("interior", "Interior Studio", Icons.Outlined.Home, KreaviloColors.InteriorStudioBadge, KreaviloColors.InteriorStudioCardBg),
             StudioItem("writing", "Writing Studio", Icons.Outlined.Edit, KreaviloColors.WritingStudioBadge, KreaviloColors.WritingStudioCardBg),
-            StudioItem("audio", "Audio Studio", Icons.Outlined.GraphicEq, KreaviloColors.AudioStudioBadge, KreaviloColors.AudioStudioCardBg)
+            StudioItem("audio", "Audio Studio", Icons.Outlined.GraphicEq, KreaviloColors.AudioStudioBadge, KreaviloColors.AudioStudioCardBg),
+            StudioItem("ar_drawing", "AR Tracing", Icons.Outlined.CameraAlt, KreaviloColors.DrawingStudioBadge, KreaviloColors.DrawingStudioCardBg)
         )
+    }
+
+    val filteredStudios = remember(searchQuery) {
+        if (searchQuery.isBlank()) studios
+        else studios.filter { it.name.contains(searchQuery, ignoreCase = true) }
     }
 
     Scaffold(
@@ -112,7 +265,9 @@ fun MainDashboardScreen(
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
+                    onClick = {
+                        selectedTab = 1
+                    },
                     icon = { Icon(if (selectedTab == 1) Icons.Filled.GridView else Icons.Outlined.GridView, contentDescription = "Studios") },
                     label = { Text("Studios", fontSize = 11.sp) },
                     colors = NavigationBarItemDefaults.colors(
@@ -123,7 +278,10 @@ fun MainDashboardScreen(
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
-                    onClick = { selectedTab = 2; onNavigateToStudio("photo") },
+                    onClick = {
+                        selectedTab = 2
+                        onNavigateToStudio("photo")
+                    },
                     icon = { Icon(Icons.Filled.AddCircle, contentDescription = "Create", tint = KreaviloColors.Primary, modifier = Modifier.size(28.dp)) },
                     label = { Text("Create", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
@@ -134,7 +292,10 @@ fun MainDashboardScreen(
                 )
                 NavigationBarItem(
                     selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 },
+                    onClick = {
+                        selectedTab = 3
+                        onNavigateToProjects()
+                    },
                     icon = { Icon(if (selectedTab == 3) Icons.Filled.Folder else Icons.Outlined.Folder, contentDescription = "Projects") },
                     label = { Text("Projects", fontSize = 11.sp) },
                     colors = NavigationBarItemDefaults.colors(
@@ -145,7 +306,10 @@ fun MainDashboardScreen(
                 )
                 NavigationBarItem(
                     selected = selectedTab == 4,
-                    onClick = { selectedTab = 4 },
+                    onClick = {
+                        selectedTab = 4
+                        onNavigateToSettings()
+                    },
                     icon = { Icon(if (selectedTab == 4) Icons.Filled.Settings else Icons.Outlined.Settings, contentDescription = "Settings") },
                     label = { Text("Settings", fontSize = 11.sp) },
                     colors = NavigationBarItemDefaults.colors(
@@ -161,7 +325,7 @@ fun MainDashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             // Top Bar
@@ -188,20 +352,30 @@ fun MainDashboardScreen(
                         )
                     }
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Kreavilo",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = KreaviloColors.TextPrimary
+                    Column {
+                        Text(
+                            text = "Kreavilo",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = KreaviloColors.TextPrimary,
+                                fontSize = 20.sp
+                            )
                         )
-                    )
+                        Text(
+                            text = "Create without limits",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = KreaviloColors.TextSecondary,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
                 }
 
-                IconButton(onClick = { /* Notifications */ }) {
+                IconButton(onClick = onNavigateToAi) {
                     Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = "Notifications",
-                        tint = KreaviloColors.TextSecondary
+                        imageVector = Icons.Filled.AutoAwesome,
+                        contentDescription = "AI Assistant",
+                        tint = KreaviloColors.Accent
                     )
                 }
             }
@@ -225,7 +399,7 @@ fun MainDashboardScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Your imagination starts here.",
+                        text = "Your imagination starts here. Select any studio or ask Creator AI.",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = KreaviloColors.TextSecondary
                         )
@@ -251,9 +425,16 @@ fun MainDashboardScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Find any creative tool", color = KreaviloColors.TextTertiary, fontSize = 14.sp) },
+                placeholder = { Text("Find any creative tool or studio", color = KreaviloColors.TextTertiary, fontSize = 14.sp) },
                 leadingIcon = {
                     Icon(Icons.Outlined.Search, contentDescription = "Search", tint = KreaviloColors.TextSecondary)
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = KreaviloColors.TextSecondary)
+                        }
+                    }
                 },
                 shape = RoundedCornerShape(14.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -268,19 +449,31 @@ fun MainDashboardScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Studios Section Header
-            Text(
-                text = "Your creative studios",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    color = KreaviloColors.TextPrimary
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Your creative studios",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = KreaviloColors.TextPrimary
+                    )
                 )
-            )
+                Text(
+                    text = "${filteredStudios.size} studios",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = KreaviloColors.TextTertiary
+                    )
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Studios 2x4 Grid
+            // Studios Grid
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                studios.chunked(2).forEach { rowStudios ->
+                filteredStudios.chunked(2).forEach { rowStudios ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -289,7 +482,7 @@ fun MainDashboardScreen(
                             Card(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(84.dp)
+                                    .height(88.dp)
                                     .clickable { onNavigateToStudio(studio.id) },
                                 shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(containerColor = studio.cardBg)
@@ -305,7 +498,7 @@ fun MainDashboardScreen(
                                         imageVector = studio.icon,
                                         contentDescription = studio.name,
                                         tint = studio.badgeColor,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(26.dp)
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
@@ -319,6 +512,9 @@ fun MainDashboardScreen(
                                 }
                             }
                         }
+                        if (rowStudios.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -329,7 +525,7 @@ fun MainDashboardScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { /* Open Creator AI Assistant */ },
+                    .clickable { onNavigateToAi() },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface),
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(KreaviloColors.Border))
@@ -366,7 +562,7 @@ fun MainDashboardScreen(
                                 )
                             )
                             Text(
-                                text = "Ask me anything",
+                                text = "Ask me anything in English or Hindi",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     color = KreaviloColors.TextSecondary,
                                     fontSize = 12.sp
@@ -376,7 +572,7 @@ fun MainDashboardScreen(
                     }
 
                     IconButton(
-                        onClick = { /* Voice Command */ },
+                        onClick = onNavigateToAi,
                         modifier = Modifier
                             .size(38.dp)
                             .clip(CircleShape)

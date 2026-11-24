@@ -11,6 +11,7 @@ build/
 .idea/
 *.iml
 .vscode/
+.kotlin/
 local.properties
 /local.properties
 

@@ -1,0 +1,168 @@
+package com.creatorsclub.feature.video
+
+import android.app.Application
+import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import com.creatorsclub.core.storage.manager.StorageManager
+import com.creatorsclub.engine.video.exporter.Media3VideoExporter
+import com.creatorsclub.engine.video.model.VideoClip
+import com.creatorsclub.engine.video.model.VideoTransition
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.io.File
+import java.util.UUID
+import javax.inject.Inject
+
+data class VideoStudioUiState(
+    val clips: List<VideoClip> = emptyList(),
+    val selectedClipId: String? = null,
+    val isPlaying: Boolean = false,
+    val currentPositionMs: Long = 0L,
+    val totalDurationMs: Long = 0L,
+    val isLoading: Boolean = false,
+    val exportSuccessFile: File? = null,
+    val errorMessage: String? = null
+)
+
+@HiltViewModel
+class VideoStudioViewModel @Inject constructor(
+    application: Application
+) : AndroidViewModel(application) {
+
+    private val storageManager = StorageManager(application)
+    val player = ExoPlayer.Builder(application).build()
+
+    private val _uiState = MutableStateFlow(VideoStudioUiState())
+    val uiState: StateFlow<VideoStudioUiState> = _uiState.asStateFlow()
+
+    fun addClip(uri: Uri, durationMs: Long = 5000L) {
+        val newClip = VideoClip(
+            id = "clip_${UUID.randomUUID().toString().take(6)}",
+            uri = uri,
+            name = "Clip ${_uiState.value.clips.size + 1}",
+            startMs = 0L,
+            endMs = durationMs,
+            durationMs = durationMs
+        )
+        val updatedClips = _uiState.value.clips + newClip
+        _uiState.update {
+            it.copy(
+                clips = updatedClips,
+                selectedClipId = newClip.id,
+                totalDurationMs = updatedClips.sumOf { c -> c.endMs - c.startMs }
+            )
+        }
+        syncPlayerWithClips()
+    }
+
+    fun selectClip(id: String) {
+        _uiState.update { it.copy(selectedClipId = id) }
+    }
+
+    fun trimSelectedClip(startMs: Long, endMs: Long) {
+        val id = _uiState.value.selectedClipId ?: return
+        val updated = _uiState.value.clips.map { clip ->
+            if (clip.id == id) clip.copy(startMs = startMs, endMs = endMs) else clip
+        }
+        _uiState.update {
+            it.copy(
+                clips = updated,
+                totalDurationMs = updated.sumOf { c -> c.endMs - c.startMs }
+            )
+        }
+        syncPlayerWithClips()
+    }
+
+    fun setClipSpeed(speed: Float) {
+        val id = _uiState.value.selectedClipId ?: return
+        val updated = _uiState.value.clips.map { clip ->
+            if (clip.id == id) clip.copy(speed = speed) else clip
+        }
+        _uiState.update { it.copy(clips = updated) }
+    }
+
+    fun setClipTransition(transition: VideoTransition) {
+        val id = _uiState.value.selectedClipId ?: return
+        val updated = _uiState.value.clips.map { clip ->
+            if (clip.id == id) clip.copy(transition = transition) else clip
+        }
+        _uiState.update { it.copy(clips = updated) }
+    }
+
+    fun deleteSelectedClip() {
+        val id = _uiState.value.selectedClipId ?: return
+        val updated = _uiState.value.clips.filterNot { it.id == id }
+        _uiState.update {
+            it.copy(
+                clips = updated,
+                selectedClipId = updated.firstOrNull()?.id,
+                totalDurationMs = updated.sumOf { c -> c.endMs - c.startMs }
+            )
+        }
+        syncPlayerWithClips()
+    }
+
+    fun togglePlayPause() {
+        if (player.isPlaying) {
+            player.pause()
+            _uiState.update { it.copy(isPlaying = false) }
+        } else {
+            player.play()
+            _uiState.update { it.copy(isPlaying = true) }
+        }
+    }
+
+    private fun syncPlayerWithClips() {
+        player.clearMediaItems()
+        for (clip in _uiState.value.clips) {
+            val clippingConfig = MediaItem.ClippingConfiguration.Builder()
+                .setStartPositionMs(clip.startMs)
+                .setEndPositionMs(clip.endMs)
+                .build()
+
+            val item = MediaItem.Builder()
+                .setUri(clip.uri)
+                .setClippingConfiguration(clippingConfig)
+                .build()
+            player.addMediaItem(item)
+        }
+        player.prepare()
+    }
+
+    fun exportVideo() {
+        val clips = _uiState.value.clips
+        if (clips.isEmpty()) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val outputFile = File(
+                storageManager.getProjectsDir(),
+                "Kreavilo_Video_${System.currentTimeMillis()}.mp4"
+            )
+
+            val result = Media3VideoExporter.exportClips(
+                context = getApplication(),
+                clips = clips,
+                outputFile = outputFile
+            )
+
+            result.onSuccess { file ->
+                _uiState.update { it.copy(isLoading = false, exportSuccessFile = file) }
+            }.onFailure { error ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        player.release()
+    }
+}
