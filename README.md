@@ -230,6 +230,20 @@ The compiled binary will be placed at:
 
 ---
 
+## 📚 Technical Documentation & Corporate Architecture Directory
+
+All in-depth architecture blueprints, product specifications, quality assurance registers, and legal compliance reports are systematically cataloged in the [`docs/`](docs/) directory:
+
+- 🏛️ **[System Architecture](docs/architecture/)**: [`ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md), [`AI_ARCHITECTURE.md`](docs/architecture/AI_ARCHITECTURE.md), [`DATABASE_SCHEMA.md`](docs/architecture/DATABASE_SCHEMA.md), [`DESIGN_SYSTEM.md`](docs/architecture/DESIGN_SYSTEM.md)
+- 📋 **[Product Specifications](docs/specifications/)**: [`PRODUCT_REQUIREMENTS.md`](docs/specifications/PRODUCT_REQUIREMENTS.md), [`FEATURE_MATRIX.md`](docs/specifications/FEATURE_MATRIX.md), [`FEATURE_IMPLEMENTATION_MATRIX.md`](docs/specifications/FEATURE_IMPLEMENTATION_MATRIX.md), [`MARKET_RESEARCH.md`](docs/specifications/MARKET_RESEARCH.md)
+- 🗺️ **[Planning & Roadmaps](docs/planning_and_roadmap/)**: [`UPGRADE_EXECUTION_PLAN.md`](docs/planning_and_roadmap/UPGRADE_EXECUTION_PLAN.md), [`MASTER_IMPLEMENTATION_PLAN.md`](docs/planning_and_roadmap/MASTER_IMPLEMENTATION_PLAN.md), [`CHANGELOG.md`](docs/planning_and_roadmap/CHANGELOG.md)
+- 🧪 **[Quality & Testing](docs/quality_and_testing/)**: [`BUG_REPORT.md`](docs/quality_and_testing/BUG_REPORT.md), [`EXISTING_APP_AUDIT.md`](docs/quality_and_testing/EXISTING_APP_AUDIT.md), [`TEST_PLAN.md`](docs/quality_and_testing/TEST_PLAN.md), [`TEST_RESULTS.md`](docs/quality_and_testing/TEST_RESULTS.md)
+- ⚖️ **[Compliance & Legal](docs/compliance_and_legal/)**: [`SECURITY_AND_PRIVACY.md`](docs/compliance_and_legal/SECURITY_AND_PRIVACY.md), [`DEPENDENCY_REGISTER.md`](docs/compliance_and_legal/DEPENDENCY_REGISTER.md), [`STORE_LISTING.md`](docs/compliance_and_legal/STORE_LISTING.md), [`ASSET_LICENSE_REGISTER.md`](docs/compliance_and_legal/ASSET_LICENSE_REGISTER.md)
+
+👉 Master Documentation Index: **[`docs/README.md`](docs/README.md)**
+
+---
+
 ## 👨‍💻 Engineering Leadership & Credits
 
 - **Creator & Lead Architect:** **Saksham Rajpoot**
