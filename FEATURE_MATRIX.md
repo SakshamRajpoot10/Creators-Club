@@ -3,13 +3,13 @@
 
 | Feature ID | Studio | Feature Name | Implementation Approach | Key Dependency / Reference | Hardware Tier | Status |
 |---|---|---|---|---|---|---|
-| `core.project.create` | Core | Create New Project | Room DB + `.krv` file serialization | Room, Kotlinx Serialization | Basic | Planned |
-| `core.project.manage` | Core | Duplicate, Archive, Restore | Room transactions + SAF file operations | Room, MediaStore | Basic | Planned |
-| `core.export.image` | Core | Unified Image Export | Android Bitmap compress + Exif stripping | Android Graphics, ExifInterface | Basic | Planned |
+| `core.project.create` | Core | Create New Project | Room DB + `.krv` file serialization | Room, Kotlinx Serialization | Basic | Implemented |
+| `core.project.manage` | Core | Duplicate, Archive, Restore | Room transactions + SAF file operations | Room, MediaStore | Basic | Implemented |
+| `core.export.image` | Core | Unified Image Export | Android Bitmap compress + Exif stripping | Android Graphics, ExifInterface | Basic | Implemented |
 | `core.export.video` | Core | Hardware Video Export | Media3 Transformer H.264/AAC | AndroidX Media3 | Mid | Planned |
-| `photo.crop_rotate` | Photo | Crop, Rotate & Straighten | Matrix affine transformations & Canvas | Compose Canvas, uCrop reference | Basic | Planned |
-| `photo.adjustments` | Photo | Brightness, Contrast, HSL, Curves | Custom ColorFilter & RenderEffect / GL | Android Graphics, OpenCV | Basic | Planned |
-| `photo.filters` | Photo | Cinematic & Artistic LUT Filters | ColorMatrix & 3D LUT shader | OpenGL ES / Compose Shaders | Basic | Planned |
+| `photo.crop_rotate` | Photo | Crop, Rotate & Straighten | Matrix affine transformations & Canvas | Compose Canvas, uCrop reference | Basic | Implemented |
+| `photo.adjustments` | Photo | Brightness, Contrast, HSL, Curves | Custom ColorFilter & RenderEffect / GL | Android Graphics, OpenCV | Basic | Implemented |
+| `photo.filters` | Photo | Cinematic & Artistic LUT Filters | ColorMatrix & 3D LUT shader | OpenGL ES / Compose Shaders | Basic | Implemented |
 | `photo.bg_remove` | Photo | Automatic Background Removal | MediaPipe Interactive Segmentation | MediaPipe Tasks Vision | Mid | Feasibility Validated |
 | `design.canvas` | Design | Multi-touch Layer Canvas | Compose PointerInput + Transformable | Compose UI Graphics | Basic | Planned |
 | `design.typography` | Design | Advanced Typography Engine | Custom TextLayout with font shaping | Compose Text, Google Fonts | Basic | Planned |

@@ -6,9 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,8 +23,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.creatorsclub.core.designsystem.theme.KreaviloColors
 import com.creatorsclub.core.designsystem.theme.KreaviloTheme
+import com.creatorsclub.feature.photo.PhotoStudioScreen
+import com.creatorsclub.feature.photo.PhotoStudioViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -36,7 +39,25 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             KreaviloTheme {
-                MainAppScreen()
+                val navController = rememberNavController()
+                NavHost(navController = navController, startDestination = "home") {
+                    composable("home") {
+                        MainDashboardScreen(
+                            onNavigateToStudio = { studioId ->
+                                if (studioId == "photo") {
+                                    navController.navigate("photo_studio")
+                                }
+                            }
+                        )
+                    }
+                    composable("photo_studio") {
+                        val photoViewModel: PhotoStudioViewModel = hiltViewModel()
+                        PhotoStudioScreen(
+                            viewModel = photoViewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+                }
             }
         }
     }
@@ -52,7 +73,9 @@ data class StudioItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainAppScreen() {
+fun MainDashboardScreen(
+    onNavigateToStudio: (String) -> Unit
+) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
 
@@ -100,7 +123,7 @@ fun MainAppScreen() {
                 )
                 NavigationBarItem(
                     selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 },
+                    onClick = { selectedTab = 2; onNavigateToStudio("photo") },
                     icon = { Icon(Icons.Filled.AddCircle, contentDescription = "Create", tint = KreaviloColors.Primary, modifier = Modifier.size(28.dp)) },
                     label = { Text("Create", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
@@ -209,7 +232,7 @@ fun MainAppScreen() {
                     )
                     Spacer(modifier = Modifier.height(14.dp))
                     Button(
-                        onClick = { /* New Project */ },
+                        onClick = { onNavigateToStudio("photo") },
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
                         modifier = Modifier.fillMaxWidth()
@@ -267,7 +290,7 @@ fun MainAppScreen() {
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(84.dp)
-                                    .clickable { /* Navigate to Studio */ },
+                                    .clickable { onNavigateToStudio(studio.id) },
                                 shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(containerColor = studio.cardBg)
                             ) {
