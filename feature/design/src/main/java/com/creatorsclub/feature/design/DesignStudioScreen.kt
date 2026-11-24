@@ -109,6 +109,11 @@ fun DesignStudioScreen(
                         DesignStudioTab.SHAPES -> ShapeControlsRow(
                             onAddShape = { shapeType, color -> viewModel.addShape(shapeType, color) }
                         )
+                        DesignStudioTab.STICKERS -> StickersControlsRow(
+                            importedStickers = uiState.importedStickers,
+                            onAddBadge = { label, color -> viewModel.addSticker(label, color) },
+                            onAddImportedSticker = { filePath -> viewModel.addImageElement(filePath) }
+                        )
                         DesignStudioTab.BACKGROUND -> BackgroundColorPickerRow(
                             onSelectColor = { viewModel.setBackgroundColor(it) }
                         )
@@ -146,6 +151,12 @@ fun DesignStudioScreen(
                         onClick = { viewModel.selectTab(DesignStudioTab.SHAPES) },
                         text = { Text("Elements", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
                         icon = { Icon(Icons.Outlined.Category, contentDescription = null, modifier = Modifier.size(20.dp)) }
+                    )
+                    Tab(
+                        selected = uiState.activeTab == DesignStudioTab.STICKERS,
+                        onClick = { viewModel.selectTab(DesignStudioTab.STICKERS) },
+                        text = { Text("Stickers", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                        icon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp)) }
                     )
                     Tab(
                         selected = uiState.activeTab == DesignStudioTab.BACKGROUND,
@@ -330,6 +341,52 @@ fun BackgroundColorPickerRow(
                     .background(color)
                     .clickable { onSelectColor(color) }
             )
+        }
+    }
+}
+
+@Composable
+fun StickersControlsRow(
+    importedStickers: List<java.io.File>,
+    onAddBadge: (String, Color) -> Unit,
+    onAddImportedSticker: (String) -> Unit
+) {
+    val curatedBadges = listOf(
+        Pair("🔥 TRENDING", Color(0xFFEF4444)),
+        Pair("⭐ BEST VALUE", Color(0xFFF59E0B)),
+        Pair("🏷️ 50% OFF", Color(0xFF10B981)),
+        Pair("✨ NEW ARRIVAL", Color(0xFF6366F1)),
+        Pair("🚀 CREATOR CLUB", Color(0xFF405BC7)),
+        Pair("⚡ LIMITED", Color(0xFF8B5CF6))
+    )
+
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        items(curatedBadges) { (label, color) ->
+            Button(
+                onClick = { onAddBadge(label, color) },
+                colors = ButtonDefaults.buttonColors(containerColor = color),
+                shape = RoundedCornerShape(20.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        }
+
+        items(importedStickers) { stickerFile ->
+            Card(
+                modifier = Modifier
+                    .height(38.dp)
+                    .clickable { onAddImportedSticker(stickerFile.absolutePath) },
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = KreaviloColors.SurfaceVariant)
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
+                    Text("📁 ${stickerFile.name.take(12)}", fontSize = 11.sp, color = KreaviloColors.TextPrimary)
+                }
+            }
         }
     }
 }

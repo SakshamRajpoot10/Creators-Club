@@ -46,6 +46,51 @@ class DesignStudioViewModel @Inject constructor(
         if (DefaultTemplates.allTemplates.isNotEmpty()) {
             loadTemplate(DefaultTemplates.allTemplates.first())
         }
+        refreshImportedAssets()
+    }
+
+    fun refreshImportedAssets() {
+        val stickers = storageManager.listImportedAssets("stickers")
+        _uiState.update { it.copy(importedStickers = stickers) }
+    }
+
+    fun addSticker(text: String, bgColor: Color) {
+        saveForUndo()
+        val shape = ShapeElement(
+            id = "shape_${UUID.randomUUID().toString().take(6)}",
+            x = 120f,
+            y = 120f,
+            width = 140f,
+            height = 44f,
+            fillColor = bgColor,
+            shapeType = ShapeType.ROUNDED_RECTANGLE,
+            cornerRadius = 12f
+        )
+        val label = TextElement(
+            id = "txt_${UUID.randomUUID().toString().take(6)}",
+            text = text,
+            x = 130f,
+            y = 132f,
+            fontSizeSp = 13f,
+            color = Color.White,
+            isBold = true
+        )
+        _uiState.update { it.copy(elements = it.elements + shape + label, selectedElementId = label.id) }
+    }
+
+    fun addImageElement(filePath: String) {
+        saveForUndo()
+        val bitmap = android.graphics.BitmapFactory.decodeFile(filePath) ?: return
+        val newElement = com.creatorsclub.engine.canvas.model.ImageElement(
+            id = "img_${UUID.randomUUID().toString().take(6)}",
+            x = 100f,
+            y = 100f,
+            width = 160f,
+            height = 160f * (bitmap.height.toFloat() / bitmap.width.toFloat().coerceAtLeast(1f)),
+            bitmap = bitmap,
+            assetUri = filePath
+        )
+        _uiState.update { it.copy(elements = it.elements + newElement, selectedElementId = newElement.id) }
     }
 
     fun selectTab(tab: DesignStudioTab) {

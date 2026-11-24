@@ -4,11 +4,13 @@ import android.net.Uri
 import androidx.compose.ui.graphics.Color
 import com.creatorsclub.engine.canvas.model.CanvasElement
 import com.creatorsclub.engine.canvas.model.DesignTemplate
+import java.io.File
 
 enum class DesignStudioTab {
     TEMPLATES,
     TEXT,
     SHAPES,
+    STICKERS,
     BACKGROUND
 }
 
@@ -21,6 +23,7 @@ data class DesignStudioUiState(
     val selectedElementId: String? = null,
     val activeTab: DesignStudioTab = DesignStudioTab.TEMPLATES,
     val availableTemplates: List<DesignTemplate> = emptyList(),
+    val importedStickers: List<File> = emptyList(),
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
     val exportSuccessUri: Uri? = null,
