@@ -25,6 +25,7 @@ enum class ActiveAdjustmentTool {
 data class PhotoStudioUiState(
     val isLoading: Boolean = false,
     val sourceBitmap: Bitmap? = null,
+    val previewThumbnail: Bitmap? = null,
     val imageUri: Uri? = null,
     val activeTab: PhotoEditorTab = PhotoEditorTab.FILTERS,
     val activeAdjustmentTool: ActiveAdjustmentTool = ActiveAdjustmentTool.BRIGHTNESS,

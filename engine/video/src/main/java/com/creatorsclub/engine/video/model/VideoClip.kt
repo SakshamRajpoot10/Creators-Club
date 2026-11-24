@@ -23,4 +23,7 @@ data class VideoClip(
     val speed: Float = 1.0f,
     val volume: Float = 1.0f,
     val transition: VideoTransition = VideoTransition.NONE
-)
+) {
+    val trimmedDurationMs: Long get() = (endMs - startMs).coerceAtLeast(0L)
+    val effectiveDurationMs: Long get() = ((endMs - startMs).coerceAtLeast(0L) / speed.coerceAtLeast(0.1f)).toLong()
+}

@@ -45,10 +45,14 @@ class PhotoStudioViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, imageUri = uri) }
             val bitmap = decodeSampledBitmapFromUri(uri)
             if (bitmap != null) {
+                val thumbnail = withContext(Dispatchers.Default) {
+                    runCatching { Bitmap.createScaledBitmap(bitmap, 160, 160, true) }.getOrNull()
+                }
                 _uiState.update {
                     it.copy(
                         isLoading = false,
                         sourceBitmap = bitmap,
+                        previewThumbnail = thumbnail,
                         adjustments = ImageAdjustmentState(),
                         canUndo = false,
                         canRedo = false
@@ -68,9 +72,11 @@ class PhotoStudioViewModel @Inject constructor(
     }
 
     fun setSourceBitmap(bitmap: Bitmap) {
+        val thumbnail = runCatching { Bitmap.createScaledBitmap(bitmap, 160, 160, true) }.getOrNull()
         _uiState.update {
             it.copy(
                 sourceBitmap = bitmap,
+                previewThumbnail = thumbnail,
                 adjustments = ImageAdjustmentState(),
                 canUndo = false,
                 canRedo = false

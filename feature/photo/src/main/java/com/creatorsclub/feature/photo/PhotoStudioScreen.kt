@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -153,6 +154,7 @@ fun PhotoStudioScreen(
                         when (uiState.activeTab) {
                             PhotoEditorTab.FILTERS -> FilterGalleryRow(
                                 selectedFilter = uiState.adjustments.filterPreset,
+                                thumbnailBitmap = uiState.previewThumbnail,
                                 onSelectFilter = { viewModel.applyFilter(it) }
                             )
                             PhotoEditorTab.ADJUSTMENTS -> AdjustmentSlidersRow(
@@ -384,41 +386,92 @@ fun PhotoStudioScreen(
 @Composable
 fun FilterGalleryRow(
     selectedFilter: FilterPreset,
+    thumbnailBitmap: Bitmap?,
     onSelectFilter: (FilterPreset) -> Unit
 ) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        items(FilterPreset.entries) { preset ->
-            val isSelected = preset == selectedFilter
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable { onSelectFilter(preset) }
-                    .padding(4.dp)
-            ) {
-                Box(
+    var selectedCategory by remember { mutableStateOf("All") }
+    val categories = remember { listOf("All", "Essentials", "Cinema", "Classic", "Monochrome", "Creative") }
+
+    val filteredPresets = remember(selectedCategory) {
+        if (selectedCategory == "All") FilterPreset.entries
+        else FilterPreset.entries.filter { it.category == selectedCategory }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Category Filter Chips
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp)
+        ) {
+            items(categories) { cat ->
+                val isCatSelected = cat == selectedCategory
+                FilterChip(
+                    selected = isCatSelected,
+                    onClick = { selectedCategory = cat },
+                    label = { Text(cat, fontSize = 11.sp, fontWeight = if (isCatSelected) FontWeight.Bold else FontWeight.Normal) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = KreaviloColors.PrimaryContainer,
+                        selectedLabelColor = KreaviloColors.Primary
+                    )
+                )
+            }
+        }
+
+        // Horizontal Filters Carousel with Live Thumbnail Previews
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(filteredPresets) { preset ->
+                val isSelected = preset == selectedFilter
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .size(54.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) KreaviloColors.PrimaryContainer else KreaviloColors.SurfaceVariant),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onSelectFilter(preset) }
+                        .padding(4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.FilterFrames,
-                        contentDescription = preset.displayName,
-                        tint = if (isSelected) KreaviloColors.Primary else KreaviloColors.TextSecondary
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) KreaviloColors.PrimaryContainer else KreaviloColors.SurfaceVariant)
+                            .border(
+                                width = if (isSelected) 2.5.dp else 1.dp,
+                                color = if (isSelected) KreaviloColors.Primary else Color.Transparent,
+                                shape = RoundedCornerShape(8.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (thumbnailBitmap != null) {
+                            val matrix = ColorMatrixProcessor.getPresetColorMatrix(preset)
+                            Image(
+                                bitmap = thumbnailBitmap.asImageBitmap(),
+                                contentDescription = preset.displayName,
+                                colorFilter = ColorFilter.colorMatrix(matrix),
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.FilterFrames,
+                                contentDescription = preset.displayName,
+                                tint = if (isSelected) KreaviloColors.Primary else KreaviloColors.TextSecondary
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = preset.displayName,
+                        fontSize = 10.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) KreaviloColors.Primary else KreaviloColors.TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = preset.displayName,
-                    fontSize = 11.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isSelected) KreaviloColors.Primary else KreaviloColors.TextPrimary
-                )
             }
         }
     }

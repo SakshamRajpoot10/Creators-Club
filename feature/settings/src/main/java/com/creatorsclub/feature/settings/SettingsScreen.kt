@@ -35,10 +35,10 @@ fun SettingsScreen(
     onNavigateToPermissions: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    val context = LocalContext.current.applicationContext
     val uiState by viewModel.uiState.collectAsState()
 
-    val authManager = remember { AuthSessionManager.getInstance(context) }
+    val authManager = remember(context) { AuthSessionManager.getInstance(context) }
     val currentUser by authManager.currentUser.collectAsState()
     val isAuthenticated by authManager.isAuthenticated.collectAsState()
 
@@ -410,7 +410,7 @@ fun SettingsScreen(
                     Text("Storage & Cache", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.TextPrimary)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Temporary render frames: ${String.format("%.1f", uiState.cacheSizeMb)} MB",
+                        text = "Temporary render frames: ${(uiState.cacheSizeMb * 10f).toInt() / 10f} MB",
                         fontSize = 12.sp,
                         color = KreaviloColors.TextSecondary
                     )

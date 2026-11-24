@@ -41,6 +41,8 @@ import com.creatorsclub.feature.audio.AudioStudioScreen
 import com.creatorsclub.feature.audio.AudioStudioViewModel
 import com.creatorsclub.feature.design.DesignStudioScreen
 import com.creatorsclub.feature.design.DesignStudioViewModel
+import com.creatorsclub.feature.design.banner.BannerStudioScreen
+import com.creatorsclub.feature.design.banner.BannerStudioViewModel
 import com.creatorsclub.feature.drawing.DrawingStudioScreen
 import com.creatorsclub.feature.drawing.DrawingStudioViewModel
 import com.creatorsclub.feature.interior.InteriorStudioScreen
@@ -81,6 +83,7 @@ class MainActivity : ComponentActivity() {
                         "audio" -> navController.navigate("audio_studio")
                         "writing" -> navController.navigate("writing_studio")
                         "interior" -> navController.navigate("interior_studio")
+                        "banner", "thumbnail", "banner_thumbnail", "banner_studio" -> navController.navigate("banner_studio")
                         else -> navController.navigate("photo_studio")
                     }
                 }
@@ -176,6 +179,15 @@ class MainActivity : ComponentActivity() {
                     composable("interior_studio") {
                         val viewModel: InteriorStudioViewModel = hiltViewModel()
                         InteriorStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 10. Banner & Thumbnail Studio
+                    composable("banner_studio") {
+                        val viewModel: BannerStudioViewModel = hiltViewModel()
+                        BannerStudioScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navController.popBackStack() }
                         )
@@ -346,7 +358,8 @@ fun HomeDashboardScreen(
             QuickToolItem("Video Reel", "video", "New Timeline", Icons.Outlined.MovieFilter, KreaviloColors.VideoStudioBadge),
             QuickToolItem("AR Tracing", "ar_drawing", "Camera Tracing", Icons.Outlined.CameraAlt, KreaviloColors.DrawingStudioBadge),
             QuickToolItem("Teleprompter", "writing", "Video Teleprompter", Icons.Outlined.Subtitles, KreaviloColors.WritingStudioBadge),
-            QuickToolItem("2D Floorplan", "interior", "2D Floorplan", Icons.Outlined.MeetingRoom, KreaviloColors.InteriorStudioBadge)
+            QuickToolItem("2D Floorplan", "interior", "2D Floorplan", Icons.Outlined.MeetingRoom, KreaviloColors.InteriorStudioBadge),
+            QuickToolItem("Thumbnails", "banner", "YouTube Thumbnail", Icons.Outlined.BurstMode, KreaviloColors.DesignStudioBadge)
         )
     }
 
@@ -360,7 +373,8 @@ fun HomeDashboardScreen(
             StudioItem("interior", "Interior Studio", Icons.Outlined.Home, KreaviloColors.InteriorStudioBadge, KreaviloColors.InteriorStudioCardBg),
             StudioItem("writing", "Writing Studio", Icons.Outlined.Edit, KreaviloColors.WritingStudioBadge, KreaviloColors.WritingStudioCardBg),
             StudioItem("audio", "Audio Studio", Icons.Outlined.GraphicEq, KreaviloColors.AudioStudioBadge, KreaviloColors.AudioStudioCardBg),
-            StudioItem("ar_drawing", "AR Tracing", Icons.Outlined.CameraAlt, KreaviloColors.DrawingStudioBadge, KreaviloColors.DrawingStudioCardBg)
+            StudioItem("ar_drawing", "AR Tracing", Icons.Outlined.CameraAlt, KreaviloColors.DrawingStudioBadge, KreaviloColors.DrawingStudioCardBg),
+            StudioItem("banner", "Banner Studio", Icons.Outlined.BurstMode, KreaviloColors.DesignStudioBadge, KreaviloColors.DesignStudioCardBg)
         )
     }
 

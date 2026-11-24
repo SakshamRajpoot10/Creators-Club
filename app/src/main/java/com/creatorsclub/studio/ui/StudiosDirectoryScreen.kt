@@ -149,6 +149,17 @@ fun StudiosDirectoryScreen(
                 cardBg = KreaviloColors.DrawingStudioCardBg,
                 features = listOf("Sobel Edge Filter", "Opacity Slider", "Flashlight Toggle", "Torch Lock", "Paper Tracing"),
                 tags = listOf("ar", "trace", "tracing", "camera", "draw", "contour", "sketch", "outline", "learn")
+            ),
+            StudioDirectoryItem(
+                id = "banner",
+                name = "Banner & Thumbnail Studio",
+                category = "Design & Art",
+                description = "Dedicated studio for high-CTR YouTube thumbnails, channel banners with 1235x338 safe zones, and social media headers.",
+                icon = Icons.Outlined.BurstMode,
+                badgeColor = KreaviloColors.DesignStudioBadge,
+                cardBg = KreaviloColors.DesignStudioCardBg,
+                features = listOf("YouTube Safe Zones", "High-Contrast Stroke", "CTR Preset Badges", "Custom Backgrounds", "4K Ultra Export"),
+                tags = listOf("banner", "thumbnail", "youtube", "channel", "art", "social", "header", "cover", "safezone")
             )
         )
     }

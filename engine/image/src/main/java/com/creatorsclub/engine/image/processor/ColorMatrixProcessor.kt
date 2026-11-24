@@ -74,18 +74,36 @@ object ColorMatrixProcessor {
         return result
     }
 
-    private fun getPresetColorMatrix(preset: FilterPreset): ColorMatrix {
+    fun getPresetColorMatrix(preset: FilterPreset): ColorMatrix {
         return when (preset) {
             FilterPreset.NONE -> ColorMatrix()
-            FilterPreset.MONOCHROME -> ColorMatrix().apply { setToSaturation(0f) }
-            FilterPreset.SEPIA -> ColorMatrix(
+            FilterPreset.VIVID -> ColorMatrix().apply { setToSaturation(1.4f) }
+            FilterPreset.HDR -> ColorMatrix(
                 floatArrayOf(
-                    0.393f, 0.769f, 0.189f, 0f, 0f,
-                    0.349f, 0.686f, 0.168f, 0f, 0f,
-                    0.272f, 0.534f, 0.131f, 0f, 0f,
+                    1.2f, 0f, 0f, 0f, -15f,
+                    0f, 1.2f, 0f, 0f, -15f,
+                    0f, 0f, 1.2f, 0f, -15f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(1.25f) }) }
+            FilterPreset.SOFT_GLOW -> ColorMatrix(
+                floatArrayOf(
+                    1.05f, 0f, 0f, 0f, 15f,
+                    0f, 1.05f, 0f, 0f, 15f,
+                    0f, 0f, 1.05f, 0f, 15f,
                     0f, 0f, 0f, 1f, 0f
                 )
             )
+            FilterPreset.CRISP -> ColorMatrix(
+                floatArrayOf(
+                    1.15f, 0f, 0f, 0f, -10f,
+                    0f, 1.15f, 0f, 0f, -10f,
+                    0f, 0f, 1.15f, 0f, -10f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+
+            // Cinema
             FilterPreset.CINEMATIC -> ColorMatrix(
                 floatArrayOf(
                     1.1f, 0f, 0f, 0f, -10f,
@@ -94,19 +112,61 @@ object ColorMatrixProcessor {
                     0f, 0f, 0f, 1f, 0f
                 )
             )
+            FilterPreset.TEAL_ORANGE -> ColorMatrix(
+                floatArrayOf(
+                    1.2f, 0.05f, -0.1f, 0f, 10f,
+                    -0.05f, 1.1f, 0.05f, 0f, 5f,
+                    -0.15f, 0.05f, 1.3f, 0f, 18f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.HOLLYWOOD -> ColorMatrix(
+                floatArrayOf(
+                    1.15f, 0.08f, 0f, 0f, 12f,
+                    0.05f, 1.05f, 0f, 0f, 8f,
+                    -0.05f, 0f, 0.9f, 0f, -8f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.CYBERPUNK -> ColorMatrix(
+                floatArrayOf(
+                    1.3f, -0.1f, 0.1f, 0f, 20f,
+                    -0.1f, 0.9f, 0.2f, 0f, -10f,
+                    0.1f, 0.2f, 1.4f, 0f, 25f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.BLADE_RUNNER -> ColorMatrix(
+                floatArrayOf(
+                    1.25f, 0f, 0.1f, 0f, 15f,
+                    0f, 0.85f, 0.1f, 0f, -12f,
+                    -0.1f, 0.1f, 1.35f, 0f, 20f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.INDIE_FILM -> ColorMatrix(
+                floatArrayOf(
+                    1.08f, 0.06f, 0f, 0f, 8f,
+                    0.04f, 1.02f, 0f, 0f, 4f,
+                    -0.08f, 0f, 0.88f, 0f, -4f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.DOCUMENTARY -> ColorMatrix(
+                floatArrayOf(
+                    1.05f, 0f, 0f, 0f, -5f,
+                    0f, 1.05f, 0f, 0f, -5f,
+                    0f, 0f, 1.05f, 0f, -5f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(0.85f) }) }
+
+            // Classic & Vintage
             FilterPreset.VINTAGE -> ColorMatrix(
                 floatArrayOf(
                     0.9f, 0.1f, 0.1f, 0f, 10f,
                     0.1f, 0.8f, 0.1f, 0f, 5f,
                     0.1f, 0.1f, 0.7f, 0f, -5f,
-                    0f, 0f, 0f, 1f, 0f
-                )
-            )
-            FilterPreset.PORTRAIT -> ColorMatrix(
-                floatArrayOf(
-                    1.05f, 0f, 0f, 0f, 8f,
-                    0f, 1.02f, 0f, 0f, 4f,
-                    0f, 0f, 0.98f, 0f, 0f,
                     0f, 0f, 0f, 1f, 0f
                 )
             )
@@ -118,6 +178,91 @@ object ColorMatrixProcessor {
                     0f, 0f, 0f, 1f, 0f
                 )
             )
+            FilterPreset.KODACHROME -> ColorMatrix(
+                floatArrayOf(
+                    1.12f, 0.05f, 0f, 0f, 14f,
+                    0f, 1.08f, 0.02f, 0f, 6f,
+                    -0.05f, 0f, 0.92f, 0f, -10f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.POLAROID -> ColorMatrix(
+                floatArrayOf(
+                    1.05f, 0.08f, 0f, 0f, 16f,
+                    0.02f, 0.98f, 0f, 0f, 10f,
+                    0f, 0f, 0.85f, 0f, 12f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.BLEACH_BYPASS -> ColorMatrix(
+                floatArrayOf(
+                    1.3f, 0f, 0f, 0f, -20f,
+                    0f, 1.3f, 0f, 0f, -20f,
+                    0f, 0f, 1.3f, 0f, -20f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(0.4f) }) }
+            FilterPreset.FADED -> ColorMatrix(
+                floatArrayOf(
+                    0.9f, 0f, 0f, 0f, 30f,
+                    0f, 0.9f, 0f, 0f, 30f,
+                    0f, 0f, 0.9f, 0f, 30f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(0.8f) }) }
+            FilterPreset.SEPIA -> ColorMatrix(
+                floatArrayOf(
+                    0.393f, 0.769f, 0.189f, 0f, 0f,
+                    0.349f, 0.686f, 0.168f, 0f, 0f,
+                    0.272f, 0.534f, 0.131f, 0f, 0f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+
+            // Monochrome
+            FilterPreset.MONOCHROME -> ColorMatrix().apply { setToSaturation(0f) }
+            FilterPreset.DRAMATIC_BW -> ColorMatrix(
+                floatArrayOf(
+                    1.4f, 0f, 0f, 0f, -40f,
+                    0f, 1.4f, 0f, 0f, -40f,
+                    0f, 0f, 1.4f, 0f, -40f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(0f) }) }
+            FilterPreset.SILVER -> ColorMatrix(
+                floatArrayOf(
+                    1.1f, 0f, 0f, 0f, 5f,
+                    0f, 1.1f, 0f, 0f, 5f,
+                    0f, 0f, 1.15f, 0f, 10f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(0f) }) }
+            FilterPreset.CARBON -> ColorMatrix(
+                floatArrayOf(
+                    0.9f, 0f, 0f, 0f, 25f,
+                    0f, 0.9f, 0f, 0f, 25f,
+                    0f, 0f, 0.9f, 0f, 25f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(0f) }) }
+            FilterPreset.MOODY -> ColorMatrix(
+                floatArrayOf(
+                    1.25f, 0f, 0f, 0f, -30f,
+                    0f, 1.25f, 0f, 0f, -30f,
+                    0f, 0f, 1.25f, 0f, -30f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(0f) }) }
+            FilterPreset.SEPIA_BW -> ColorMatrix(
+                floatArrayOf(
+                    0.38f, 0.74f, 0.18f, 0f, 10f,
+                    0.34f, 0.66f, 0.16f, 0f, 5f,
+                    0.26f, 0.50f, 0.12f, 0f, -5f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+
+            // Creative & Mood
             FilterPreset.WARM -> ColorMatrix(
                 floatArrayOf(
                     1.15f, 0f, 0f, 0f, 10f,
@@ -150,6 +295,46 @@ object ColorMatrixProcessor {
                     0f, 0f, 0f, 1f, 0f
                 )
             )
+            FilterPreset.GOLDEN_HOUR -> ColorMatrix(
+                floatArrayOf(
+                    1.2f, 0.08f, 0f, 0f, 18f,
+                    0.05f, 1.08f, 0f, 0f, 12f,
+                    -0.1f, 0f, 0.82f, 0f, -15f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.PASTEL -> ColorMatrix(
+                floatArrayOf(
+                    0.95f, 0.05f, 0.05f, 0f, 20f,
+                    0.05f, 0.95f, 0.05f, 0f, 20f,
+                    0.05f, 0.05f, 0.95f, 0f, 25f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(0.75f) }) }
+            FilterPreset.EMERALD -> ColorMatrix(
+                floatArrayOf(
+                    0.88f, 0.05f, 0f, 0f, -5f,
+                    0.02f, 1.22f, 0.05f, 0f, 15f,
+                    0f, 0.05f, 0.95f, 0f, 5f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.SUNSET -> ColorMatrix(
+                floatArrayOf(
+                    1.25f, 0.05f, 0.05f, 0f, 20f,
+                    0.02f, 0.95f, 0.05f, 0f, 5f,
+                    -0.05f, 0.05f, 1.15f, 0f, 12f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            FilterPreset.URBAN -> ColorMatrix(
+                floatArrayOf(
+                    1.12f, 0f, 0f, 0f, -8f,
+                    0f, 1.02f, 0f, 0f, 2f,
+                    0f, 0f, 1.08f, 0f, 8f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            ).also { it.timesAssign(ColorMatrix().apply { setToSaturation(1.15f) }) }
         }
     }
 }

@@ -6,11 +6,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.creatorsclub.core.storage.manager.StorageManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class ModelInfo(
@@ -57,29 +59,42 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
-        refreshCacheSize()
-        refreshCreatorHubStats()
+        viewModelScope.launch(Dispatchers.IO) {
+            refreshCacheSize()
+            refreshCreatorHubStats()
+        }
     }
 
-    private fun refreshCacheSize() {
-        val bytes = storageManager.getCacheDir().walkTopDown().filter { it.isFile }.map { it.length() }.sum()
-        _uiState.update { it.copy(cacheSizeMb = bytes / (1024f * 1024f)) }
+    fun refreshCacheSize() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val bytes = runCatching {
+                val dir = storageManager.getCacheDir()
+                if (dir.exists()) {
+                    dir.walkTopDown().filter { it.isFile }.map { it.length() }.sum()
+                } else {
+                    0L
+                }
+            }.getOrDefault(0L)
+            val mb = bytes / (1024f * 1024f)
+            _uiState.update { it.copy(cacheSizeMb = mb) }
+        }
     }
 
     fun refreshCreatorHubStats() {
-        val fonts = storageManager.listImportedAssets("fonts").size
-        val audio = storageManager.listImportedAssets("audio").size
-        val stickers = storageManager.listImportedAssets("stickers").size
-        val banners = storageManager.listImportedAssets("banners").size
-        _uiState.update {
-            it.copy(
-                assetStats = CreatorAssetStats(
+        viewModelScope.launch(Dispatchers.IO) {
+            val stats = runCatching {
+                val fonts = storageManager.listImportedAssets("fonts").size
+                val audio = storageManager.listImportedAssets("audio").size
+                val stickers = storageManager.listImportedAssets("stickers").size
+                val banners = storageManager.listImportedAssets("banners").size
+                CreatorAssetStats(
                     fontsCount = fonts,
                     audioCount = audio,
                     stickersCount = stickers,
                     bannersCount = banners
                 )
-            )
+            }.getOrDefault(CreatorAssetStats())
+            _uiState.update { it.copy(assetStats = stats) }
         }
     }
 

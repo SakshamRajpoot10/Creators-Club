@@ -120,6 +120,15 @@ fun CreateProjectSheet(
                 badgeColor = KreaviloColors.DrawingStudioBadge,
                 cardBg = KreaviloColors.DrawingStudioCardBg,
                 actions = listOf("Choose Reference", "Camera Tracing")
+            ),
+            StudioCreateOption(
+                id = "banner",
+                title = "Banner & Thumbnail Studio",
+                description = "Design YouTube thumbnails (1280x720) & channel banners (2560x1440) with safe zones.",
+                icon = Icons.Outlined.BurstMode,
+                badgeColor = KreaviloColors.DesignStudioBadge,
+                cardBg = KreaviloColors.DesignStudioCardBg,
+                actions = listOf("YouTube Thumbnail (1280x720)", "Channel Banner (2560x1440)", "Instagram Post", "X Header")
             )
         )
     }

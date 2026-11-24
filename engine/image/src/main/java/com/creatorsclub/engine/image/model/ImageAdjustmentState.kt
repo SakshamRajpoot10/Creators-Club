@@ -3,18 +3,50 @@ package com.creatorsclub.engine.image.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class FilterPreset(val displayName: String) {
-    NONE("Original"),
-    CINEMATIC("Cinematic"),
-    VINTAGE("Vintage"),
-    MONOCHROME("B&W"),
-    PORTRAIT("Portrait"),
-    FILM("Film 35mm"),
-    WARM("Warm Sun"),
-    COOL("Cool Breeze"),
-    MATTE("Matte Fade"),
-    SEPIA("Sepia Classic"),
-    DRAMATIC("Dramatic Contrast")
+enum class FilterPreset(val displayName: String, val category: String = "Essentials") {
+    // Essentials
+    NONE("Original", "Essentials"),
+    VIVID("Vivid Color", "Essentials"),
+    HDR("HDR Boost", "Essentials"),
+    SOFT_GLOW("Soft Glow", "Essentials"),
+    CRISP("Crisp Detail", "Essentials"),
+
+    // Cinema
+    CINEMATIC("Cinematic", "Cinema"),
+    TEAL_ORANGE("Teal & Orange", "Cinema"),
+    HOLLYWOOD("Hollywood 70s", "Cinema"),
+    CYBERPUNK("Cyberpunk", "Cinema"),
+    BLADE_RUNNER("Neon Noir", "Cinema"),
+    INDIE_FILM("Indie Gold", "Cinema"),
+    DOCUMENTARY("Docu Real", "Cinema"),
+
+    // Classic & Vintage
+    VINTAGE("Vintage 90s", "Classic"),
+    FILM("Film 35mm", "Classic"),
+    KODACHROME("Kodachrome", "Classic"),
+    POLAROID("Retro Polar", "Classic"),
+    BLEACH_BYPASS("Bleach Bypass", "Classic"),
+    FADED("Faded Memory", "Classic"),
+    SEPIA("Sepia Classic", "Classic"),
+
+    // Monochrome
+    MONOCHROME("B&W Classic", "Monochrome"),
+    DRAMATIC_BW("High Contrast B&W", "Monochrome"),
+    SILVER("Silver Gelatin", "Monochrome"),
+    CARBON("Matte Carbon", "Monochrome"),
+    MOODY("Moody Noir", "Monochrome"),
+    SEPIA_BW("Warm Monochrome", "Monochrome"),
+
+    // Creative & Mood
+    WARM("Warm Sun", "Creative"),
+    COOL("Cool Breeze", "Creative"),
+    MATTE("Matte Fade", "Creative"),
+    DRAMATIC("Dramatic Contrast", "Creative"),
+    GOLDEN_HOUR("Golden Hour", "Creative"),
+    PASTEL("Pastel Dream", "Creative"),
+    EMERALD("Emerald Forest", "Creative"),
+    SUNSET("Sunset Blush", "Creative"),
+    URBAN("Urban Street", "Creative")
 }
 
 @Serializable

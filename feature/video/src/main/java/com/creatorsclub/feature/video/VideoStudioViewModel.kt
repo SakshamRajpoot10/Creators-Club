@@ -56,7 +56,7 @@ class VideoStudioViewModel @Inject constructor(
             it.copy(
                 clips = updatedClips,
                 selectedClipId = newClip.id,
-                totalDurationMs = updatedClips.sumOf { c -> c.endMs - c.startMs }
+                totalDurationMs = updatedClips.sumOf { c -> c.effectiveDurationMs }
             )
         }
         syncPlayerWithClips()
@@ -74,7 +74,7 @@ class VideoStudioViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 clips = updated,
-                totalDurationMs = updated.sumOf { c -> c.endMs - c.startMs }
+                totalDurationMs = updated.sumOf { c -> c.effectiveDurationMs }
             )
         }
         syncPlayerWithClips()
@@ -85,7 +85,12 @@ class VideoStudioViewModel @Inject constructor(
         val updated = _uiState.value.clips.map { clip ->
             if (clip.id == id) clip.copy(speed = speed) else clip
         }
-        _uiState.update { it.copy(clips = updated) }
+        _uiState.update {
+            it.copy(
+                clips = updated,
+                totalDurationMs = updated.sumOf { c -> c.effectiveDurationMs }
+            )
+        }
     }
 
     fun setClipTransition(transition: VideoTransition) {

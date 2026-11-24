@@ -68,6 +68,12 @@ sealed interface KreaviloDestination {
         val projectId: String? = null
     ) : KreaviloDestination
 
+    @Serializable
+    data class BannerStudio(
+        val projectId: String? = null,
+        val preset: String? = null
+    ) : KreaviloDestination
+
     // Creator AI Full-Screen Experience
     @Serializable
     data class CreatorAI(

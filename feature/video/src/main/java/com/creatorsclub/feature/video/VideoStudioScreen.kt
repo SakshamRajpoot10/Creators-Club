@@ -107,6 +107,7 @@ fun VideoStudioScreen(
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     // Playback control row
+                    val selectedClip = uiState.clips.find { it.id == uiState.selectedClipId }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -124,29 +125,25 @@ fun VideoStudioScreen(
                         }
 
                         Text(
-                            text = "${uiState.totalDurationMs / 1000}s Total Duration",
+                            text = "${(uiState.totalDurationMs / 1000f).coerceAtLeast(0f)}s Total Duration",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = KreaviloColors.TextSecondary
                         )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            FilterChip(
-                                selected = false,
-                                onClick = { viewModel.setClipSpeed(0.5f) },
-                                label = { Text("0.5x", fontSize = 10.sp) }
-                            )
-                            FilterChip(
-                                selected = true,
-                                onClick = { viewModel.setClipSpeed(1.0f) },
-                                label = { Text("1.0x", fontSize = 10.sp) },
-                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KreaviloColors.Primary, selectedLabelColor = Color.White)
-                            )
-                            FilterChip(
-                                selected = false,
-                                onClick = { viewModel.setClipSpeed(2.0f) },
-                                label = { Text("2.0x", fontSize = 10.sp) }
-                            )
+                            listOf(0.5f, 1.0f, 2.0f).forEach { spd ->
+                                val isSpeedSelected = (selectedClip?.speed ?: 1.0f) == spd
+                                FilterChip(
+                                    selected = isSpeedSelected,
+                                    onClick = { viewModel.setClipSpeed(spd) },
+                                    label = { Text("${spd}x", fontSize = 10.sp) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = KreaviloColors.Primary,
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
                         }
                     }
 
@@ -202,7 +199,7 @@ fun VideoStudioScreen(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     Text(
-                                        text = "${clip.durationMs / 1000}s",
+                                        text = "${(clip.effectiveDurationMs / 1000f).coerceAtLeast(0.1f)}s • ${clip.speed}x",
                                         fontSize = 10.sp,
                                         color = KreaviloColors.TextSecondary
                                     )
