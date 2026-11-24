@@ -33,8 +33,13 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.platform.LocalContext
+import com.creatorsclub.core.database.auth.AuthSessionManager
 import com.creatorsclub.core.designsystem.theme.KreaviloColors
 import com.creatorsclub.core.designsystem.theme.KreaviloTheme
+import com.creatorsclub.studio.onboarding.PermissionOnboardingScreen
+import com.creatorsclub.studio.ui.OfflineStudioSheet
+import com.creatorsclub.studio.ui.SplashScreen
 import com.creatorsclub.feature.ar_drawing.ArDrawingScreen
 import com.creatorsclub.feature.ar_drawing.ArDrawingViewModel
 import com.creatorsclub.feature.audio.AudioStudioScreen
@@ -88,7 +93,34 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                NavHost(navController = navController, startDestination = "main_root") {
+                NavHost(navController = navController, startDestination = "splash") {
+                    // 0. Splash Screen (Brand launch & session checking)
+                    composable("splash") {
+                        SplashScreen(
+                            onNavigateToHome = {
+                                navController.navigate("main_root") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
+                            },
+                            onNavigateToPermissions = {
+                                navController.navigate("permission_onboarding") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    // First-Time Permission Onboarding
+                    composable("permission_onboarding") {
+                        PermissionOnboardingScreen(
+                            onPermissionsCompleted = {
+                                navController.navigate("main_root") {
+                                    popUpTo("permission_onboarding") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
                     // Unified Main App Root (Hosts Home, Studios Directory, Projects, Settings)
                     composable("main_root") {
                         MainAppScreen(
@@ -309,7 +341,9 @@ fun MainAppScreen(
                     onNavigateToStudio = onNavigateToStudio,
                     onOpenCreateSheet = { showCreateSheet = true },
                     onNavigateToStudiosTab = { selectedTab = 1 },
-                    onNavigateToProjectsTab = { selectedTab = 3 }
+                    onNavigateToProjectsTab = { selectedTab = 3 },
+                    onNavigateToSettingsTab = { selectedTab = 4 },
+                    onNavigateToPermissions = onNavigateToPermissions
                 )
                 1 -> StudiosDirectoryScreen(
                     onNavigateToStudio = onNavigateToStudio
@@ -343,8 +377,12 @@ fun HomeDashboardScreen(
     onNavigateToStudio: (String) -> Unit,
     onOpenCreateSheet: () -> Unit,
     onNavigateToStudiosTab: () -> Unit,
-    onNavigateToProjectsTab: () -> Unit
+    onNavigateToProjectsTab: () -> Unit,
+    onNavigateToSettingsTab: () -> Unit,
+    onNavigateToPermissions: () -> Unit = {}
 ) {
+    var showOfflineSheet by remember { mutableStateOf(false) }
+
     var searchQuery by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
 
@@ -429,13 +467,39 @@ fun HomeDashboardScreen(
                 }
             }
 
-            IconButton(onClick = onNavigateToProjectsTab) {
-                Icon(
-                    imageVector = Icons.Outlined.FolderOpen,
-                    contentDescription = "Projects & Assets",
-                    tint = KreaviloColors.Primary
-                )
+            // 100% Offline Status Badge Button in Upper-Right Corner of Dashboard Header
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFFE8F5E9),
+                modifier = Modifier.clickable { showOfflineSheet = true }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF2E7D32))
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Offline Mode",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2E7D32)
+                    )
+                }
             }
+        }
+
+        if (showOfflineSheet) {
+            OfflineStudioSheet(
+                onDismiss = { showOfflineSheet = false },
+                onNavigateToPermissions = onNavigateToPermissions,
+                onNavigateToSettings = onNavigateToSettingsTab
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))

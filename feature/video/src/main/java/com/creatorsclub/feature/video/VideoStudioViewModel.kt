@@ -23,6 +23,8 @@ import javax.inject.Inject
 data class VideoStudioUiState(
     val clips: List<VideoClip> = emptyList(),
     val selectedClipId: String? = null,
+    val backgroundAudioUri: Uri? = null,
+    val backgroundAudioName: String? = null,
     val isPlaying: Boolean = false,
     val currentPositionMs: Long = 0L,
     val totalDurationMs: Long = 0L,
@@ -41,6 +43,15 @@ class VideoStudioViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(VideoStudioUiState())
     val uiState: StateFlow<VideoStudioUiState> = _uiState.asStateFlow()
+
+    fun setBackgroundAudio(uri: Uri?, name: String? = null) {
+        _uiState.update {
+            it.copy(
+                backgroundAudioUri = uri,
+                backgroundAudioName = name ?: uri?.lastPathSegment ?: "Imported Audio Track"
+            )
+        }
+    }
 
     fun addClip(uri: Uri, durationMs: Long = 5000L) {
         val newClip = VideoClip(

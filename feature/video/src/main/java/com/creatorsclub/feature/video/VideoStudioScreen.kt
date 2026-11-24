@@ -44,6 +44,12 @@ fun VideoStudioScreen(
         uri?.let { viewModel.addClip(it) }
     }
 
+    val audioPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.setBackgroundAudio(it) }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -70,6 +76,15 @@ fun VideoStudioScreen(
                             imageVector = Icons.Outlined.VideoCall,
                             contentDescription = "Import Video Clip",
                             tint = KreaviloColors.Primary
+                        )
+                    }
+
+                    // Import Audio / Music Icon Button
+                    IconButton(onClick = { audioPickerLauncher.launch("audio/*") }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Audiotrack,
+                            contentDescription = "Import Audio / Music",
+                            tint = if (uiState.backgroundAudioUri != null) KreaviloColors.Primary else KreaviloColors.TextSecondary
                         )
                     }
 
@@ -106,6 +121,55 @@ fun VideoStudioScreen(
                         .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
+                    // Audio Track Indicator Chip
+                    if (uiState.backgroundAudioUri != null) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = KreaviloColors.PrimaryContainer,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Audiotrack,
+                                        contentDescription = null,
+                                        tint = KreaviloColors.Primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Audio: ${uiState.backgroundAudioName ?: "Imported Track"}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = KreaviloColors.Primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { viewModel.setBackgroundAudio(null) },
+                                    modifier = Modifier.size(20.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = "Remove Audio",
+                                        tint = KreaviloColors.Primary,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Playback control row
                     val selectedClip = uiState.clips.find { it.id == uiState.selectedClipId }
                     Row(

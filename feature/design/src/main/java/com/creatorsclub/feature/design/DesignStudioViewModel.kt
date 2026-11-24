@@ -93,6 +93,17 @@ class DesignStudioViewModel @Inject constructor(
         _uiState.update { it.copy(elements = it.elements + newElement, selectedElementId = newElement.id) }
     }
 
+    fun addImageFromUri(uri: android.net.Uri) {
+        viewModelScope.launch {
+            val fileName = "sticker_${System.currentTimeMillis()}.png"
+            val fileResult = storageManager.importAssetFromUri(uri, "stickers", fileName)
+            if (fileResult.isSuccess) {
+                refreshImportedAssets()
+                addImageElement(fileResult.getOrThrow().absolutePath)
+            }
+        }
+    }
+
     fun selectTab(tab: DesignStudioTab) {
         _uiState.update { it.copy(activeTab = tab) }
     }

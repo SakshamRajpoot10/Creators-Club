@@ -26,7 +26,9 @@ data class CreatorAssetStats(
     val fontsCount: Int = 0,
     val audioCount: Int = 0,
     val stickersCount: Int = 0,
-    val bannersCount: Int = 0
+    val bannersCount: Int = 0,
+    val videosCount: Int = 0,
+    val imagesCount: Int = 0
 )
 
 data class SettingsUiState(
@@ -51,8 +53,7 @@ class SettingsViewModel @Inject constructor(
             models = listOf(
                 ModelInfo("MediaPipe Interactive Segmenter", "Instant foreground cutout & background removal", "9.6 MB", true),
                 ModelInfo("ML Kit Text Recognition v2", "On-device OCR text extraction", "Core module", true),
-                ModelInfo("Sobel Gradient Operator", "Camera AR pencil outline generator", "0 MB (Native)", true),
-                ModelInfo("Android Speech Recognition", "Offline Hindi & English voice assistant", "Native", true)
+                ModelInfo("Sobel Gradient Operator", "Camera AR pencil outline generator", "0 MB (Native)", true)
             )
         )
     )
@@ -87,11 +88,15 @@ class SettingsViewModel @Inject constructor(
                 val audio = storageManager.listImportedAssets("audio").size
                 val stickers = storageManager.listImportedAssets("stickers").size
                 val banners = storageManager.listImportedAssets("banners").size
+                val videos = storageManager.listImportedAssets("videos").size
+                val images = storageManager.listImportedAssets("images").size
                 CreatorAssetStats(
                     fontsCount = fonts,
                     audioCount = audio,
                     stickersCount = stickers,
-                    bannersCount = banners
+                    bannersCount = banners,
+                    videosCount = videos,
+                    imagesCount = images
                 )
             }.getOrDefault(CreatorAssetStats())
             _uiState.update { it.copy(assetStats = stats) }

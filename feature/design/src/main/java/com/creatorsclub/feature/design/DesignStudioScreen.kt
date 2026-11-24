@@ -115,7 +115,8 @@ fun DesignStudioScreen(
                         DesignStudioTab.STICKERS -> StickersControlsRow(
                             importedStickers = uiState.importedStickers,
                             onAddBadge = { label, color -> viewModel.addSticker(label, color) },
-                            onAddImportedSticker = { filePath -> viewModel.addImageElement(filePath) }
+                            onAddImportedSticker = { filePath -> viewModel.addImageElement(filePath) },
+                            onImportNewSticker = { uri -> viewModel.addImageFromUri(uri) }
                         )
                         DesignStudioTab.BACKGROUND -> BackgroundColorPickerRow(
                             onSelectColor = { viewModel.setBackgroundColor(it) }
@@ -352,8 +353,15 @@ fun BackgroundColorPickerRow(
 fun StickersControlsRow(
     importedStickers: List<java.io.File>,
     onAddBadge: (String, Color) -> Unit,
-    onAddImportedSticker: (String) -> Unit
+    onAddImportedSticker: (String) -> Unit,
+    onImportNewSticker: (android.net.Uri) -> Unit = {}
 ) {
+    val stickerPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let { onImportNewSticker(it) }
+    }
+
     val curatedBadges = listOf(
         Pair("🔥 TRENDING", Color(0xFFEF4444)),
         Pair("⭐ BEST VALUE", Color(0xFFF59E0B)),
@@ -365,8 +373,21 @@ fun StickersControlsRow(
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        item {
+            OutlinedButton(
+                onClick = { stickerPickerLauncher.launch("image/*") },
+                shape = RoundedCornerShape(20.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Import Sticker", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
         items(curatedBadges) { (label, color) ->
             Button(
                 onClick = { onAddBadge(label, color) },

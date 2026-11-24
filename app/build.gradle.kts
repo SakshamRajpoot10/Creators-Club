@@ -72,7 +72,6 @@ dependencies {
     implementation(project(":engine:canvas"))
     implementation(project(":engine:video"))
     implementation(project(":engine:audio"))
-    implementation(project(":engine:ai"))
 
     implementation(project(":feature:photo"))
     implementation(project(":feature:design"))
@@ -83,7 +82,6 @@ dependencies {
     implementation(project(":feature:audio"))
     implementation(project(":feature:writing"))
     implementation(project(":feature:interior"))
-    implementation(project(":feature:ai_assistant"))
     implementation(project(":feature:projects"))
     implementation(project(":feature:settings"))
 
