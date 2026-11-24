@@ -7,7 +7,7 @@
 
 | Test Phase | Total Tests | Passed | Failed | Blocked | Status |
 |---|---|---|---|---|---|
-| **Phase 0: Environment & Feasibility Audit** | 8 | 8 | 0 | 0 | **ALL PASSED** |
+| **Phase 0: Environment & Feasibility Audit** | 9 | 9 | 0 | 0 | **ALL PASSED** |
 | **Phase 1: Project Foundation & Architecture** | TBD | - | - | - | Pending Execution |
 | **Phase 2: Core Image & Design Engines** | TBD | - | - | - | Pending Execution |
 | **Phase 3: Drawing & Camera Tools** | TBD | - | - | - | Pending Execution |
@@ -34,3 +34,5 @@
    - Result: All selected dependencies classified under Apache 2.0, MIT, BSD, or SIL OFL. Copyleft dependencies quarantined. **PASS**.
 8. **TEST-ENV-08: Zero-Budget Architecture Check**
    - Result: All planned engines operate locally on-device. No paid cloud APIs or auto-billing risks. **PASS**.
+9. **TEST-BUILD-01: Gradle Configuration & Task Graph Validation**
+   - Result: Gradle 8.14.4 successfully initialized on OpenJDK 21 LTS (`Android Studio JBR`). Root `build.gradle.kts`, `settings.gradle.kts`, version catalog `libs.versions.toml`, `:app`, `:core:designsystem`, and `:core:common` resolved cleanly. Build configuration cache stored. **PASS**.
