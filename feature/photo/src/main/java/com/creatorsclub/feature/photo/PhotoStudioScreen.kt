@@ -7,13 +7,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
@@ -36,6 +35,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FilterFrames
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
@@ -44,6 +44,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
@@ -52,6 +54,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,6 +76,8 @@ fun PhotoStudioScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    val configuration = LocalConfiguration.current
+    val isNarrowScreen = configuration.screenWidthDp < 412
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -94,124 +99,36 @@ fun PhotoStudioScreen(
         }
     }
 
+    // Auto-navigate back if project was soft-deleted to Trash
+    LaunchedEffect(uiState.isProjectTrashed) {
+        if (uiState.isProjectTrashed) {
+            onNavigateBack()
+        }
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Photo Studio",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = KreaviloColors.TextPrimary
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = KreaviloColors.TextPrimary
-                        )
+            AdaptivePhotoHeader(
+                uiState = uiState,
+                isNarrowScreen = isNarrowScreen,
+                onBack = onNavigateBack,
+                onCamera = {
+                    val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.CAMERA
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (hasCamera) {
+                        takePictureLauncher.launch(null)
+                    } else {
+                        cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
                     }
                 },
-                actions = {
-                    // Capture Live Photo
-                    IconButton(
-                        onClick = {
-                            val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(
-                                context,
-                                android.Manifest.permission.CAMERA
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-
-                            if (hasCamera) {
-                                takePictureLauncher.launch(null)
-                            } else {
-                                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
-                            }
-                        },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.PhotoCamera,
-                            contentDescription = "Capture Photo",
-                            tint = KreaviloColors.Primary
-                        )
-                    }
-
-                    // Import Photo
-                    IconButton(
-                        onClick = { photoPickerLauncher.launch("image/*") },
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AddPhotoAlternate,
-                            contentDescription = "Import Photo",
-                            tint = KreaviloColors.Primary
-                        )
-                    }
-
-                    // Compare Button
-                    IconButton(
-                        onClick = { viewModel.setComparingOriginal(!uiState.isComparingOriginal) },
-                        enabled = uiState.sourceBitmap != null,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Compare,
-                            contentDescription = "Compare with Original",
-                            tint = if (uiState.isComparingOriginal) KreaviloColors.Primary else KreaviloColors.TextSecondary
-                        )
-                    }
-
-                    // Undo
-                    IconButton(
-                        onClick = { viewModel.undo() },
-                        enabled = uiState.canUndo,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Undo,
-                            contentDescription = "Undo",
-                            tint = if (uiState.canUndo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary
-                        )
-                    }
-
-                    // Redo
-                    IconButton(
-                        onClick = { viewModel.redo() },
-                        enabled = uiState.canRedo,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Redo,
-                            contentDescription = "Redo",
-                            tint = if (uiState.canRedo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary
-                        )
-                    }
-
-                    // Export Button CTA
-                    Button(
-                        onClick = { viewModel.showExportSheet() },
-                        enabled = uiState.sourceBitmap != null && !uiState.isLoading && !uiState.isExporting,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier
-                            .height(36.dp)
-                            .padding(end = 8.dp)
-                    ) {
-                        Icon(Icons.Filled.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Export", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = KreaviloColors.Surface)
+                onGallery = { photoPickerLauncher.launch("image/*") },
+                onCompareToggle = { viewModel.setComparingOriginal(!uiState.isComparingOriginal) },
+                onUndo = { viewModel.undo() },
+                onRedo = { viewModel.redo() },
+                onFavoriteToggle = { viewModel.toggleFavorite() },
+                onTrashClick = { viewModel.setShowTrashConfirmDialog(true) }
             )
         },
         bottomBar = {
@@ -222,26 +139,9 @@ fun PhotoStudioScreen(
                         .background(KreaviloColors.Surface)
                         .navigationBarsPadding()
                 ) {
-                    // Secondary Area depending on active tab
-                    AnimatedVisibility(visible = uiState.activeTool == ActivePhotoTool.NONE) {
-                        when (uiState.navTab) {
-                            PhotoNavTab.LOOKS -> LooksDrawer(
-                                selectedFilter = uiState.adjustments.filterPreset,
-                                filterIntensity = uiState.adjustments.filterIntensity,
-                                thumbnailBitmap = uiState.previewThumbnail,
-                                onSelectFilter = { viewModel.applyFilter(it) },
-                                onIntensityChange = { viewModel.setFilterIntensity(it) }
-                            )
-                            PhotoNavTab.TOOLS -> ToolsGridDrawer(
-                                onSelectTool = { viewModel.openTool(it) }
-                            )
-                            PhotoNavTab.EXPORT -> Unit
-                        }
-                    }
-
                     HorizontalDivider(color = KreaviloColors.Border)
 
-                    // Primary 3-Tab Bar: LOOKS | TOOLS | EXPORT
+                    // Single Export Entry: Looks | Tools | Export
                     TabRow(
                         selectedTabIndex = uiState.navTab.ordinal,
                         containerColor = KreaviloColors.Surface,
@@ -283,12 +183,13 @@ fun PhotoStudioScreen(
             }
         }
     ) { innerPadding ->
-        Box(
+        // DISJOINT LAYOUT: Preview sits in flexible weight(1f) ABOVE the compact Tool Dock.
+        // Controls NEVER overlap the photo!
+        Column(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFF12141C)), // Dark canvas for photo color fidelity
-            contentAlignment = Alignment.Center
+                .background(Color(0xFF12141C)) // Dark canvas for accurate color judgment
         ) {
             val bitmap = uiState.sourceBitmap
             if (bitmap != null) {
@@ -302,9 +203,12 @@ fun PhotoStudioScreen(
                     ColorFilter.colorMatrix(colorMatrix)
                 }
 
+                // 1. Flexible Photo Preview Area (guaranteed >= 220dp height)
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 220.dp)
                         .pointerInput(Unit) {
                             detectTransformGestures { _, pan, zoom, _ ->
                                 zoomScale = (zoomScale * zoom).coerceIn(1f, 5f)
@@ -338,7 +242,7 @@ fun PhotoStudioScreen(
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(16.dp)
+                            .padding(12.dp)
                             .graphicsLayer {
                                 scaleX = zoomScale * (if (uiState.cropTransform.isFlippedHorizontal) -1f else 1f)
                                 scaleY = zoomScale * (if (uiState.cropTransform.isFlippedVertical) -1f else 1f)
@@ -347,35 +251,75 @@ fun PhotoStudioScreen(
                                 rotationZ = uiState.cropTransform.rotationDegrees + uiState.cropTransform.straightenDegrees
                             }
                     )
-                }
 
-                // Press and Hold Compare Banner
-                if (uiState.isComparingOriginal) {
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.8f),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 16.dp)
-                    ) {
-                        Text(
-                            text = "ORIGINAL (HOLD TO COMPARE)",
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                    // Interactive Crop Rect Overlay (when Crop tool is active)
+                    if (uiState.activeTool == ActivePhotoTool.CROP) {
+                        CropWindowOverlay(
+                            aspectRatio = uiState.cropTransform.aspectRatio,
+                            cropRect = uiState.cropTransform.cropRect,
+                            onCropRectChange = { viewModel.updateCropRect(it) }
+                        )
+                    }
+
+                    // Press and Hold Compare Banner
+                    if (uiState.isComparingOriginal) {
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.85f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 12.dp)
+                        ) {
+                            Text(
+                                text = "ORIGINAL (HOLD TO COMPARE)",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+
+                    // Live Floating Mini-Histogram (if enabled)
+                    if (uiState.isHistogramVisible && uiState.histogramData != null) {
+                        FloatingHistogramWidget(
+                            histogram = uiState.histogramData!!,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp)
                         )
                     }
                 }
 
-                // Live Floating Mini-Histogram (if enabled)
-                if (uiState.isHistogramVisible && uiState.histogramData != null) {
-                    FloatingHistogramWidget(
-                        histogram = uiState.histogramData!!,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(16.dp)
-                    )
+                // 2. Disjoint Compact Tool Dock (Occupies space strictly BELOW preview)
+                Surface(
+                    color = KreaviloColors.Surface,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    when {
+                        uiState.activeTool != ActivePhotoTool.NONE -> {
+                            CompactToolDock(
+                                activeTool = uiState.activeTool,
+                                uiState = uiState,
+                                viewModel = viewModel
+                            )
+                        }
+                        uiState.navTab == PhotoNavTab.LOOKS -> {
+                            LooksDrawer(
+                                selectedFilter = uiState.adjustments.filterPreset,
+                                filterIntensity = uiState.adjustments.filterIntensity,
+                                thumbnailBitmap = uiState.previewThumbnail,
+                                onSelectFilter = { viewModel.applyFilter(it) },
+                                onIntensityChange = { viewModel.setFilterIntensity(it) }
+                            )
+                        }
+                        uiState.navTab == PhotoNavTab.TOOLS -> {
+                            ToolsGridDrawer(
+                                onSelectTool = { viewModel.openTool(it) }
+                            )
+                        }
+                        else -> Unit
+                    }
                 }
             } else {
                 // Empty State
@@ -385,173 +329,459 @@ fun PhotoStudioScreen(
                     onBlank = { viewModel.createBlankCanvas() }
                 )
             }
+        }
+    }
 
-            // Contextual Tool Panels (Tune, Curves, HSL, Crop, Details, Creative, Histogram)
-            AnimatedVisibility(
-                visible = uiState.activeTool != ActivePhotoTool.NONE,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-                modifier = Modifier.align(Alignment.BottomCenter)
-            ) {
-                Surface(
-                    color = KreaviloColors.Surface,
-                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                    shadowElevation = 12.dp,
-                    modifier = Modifier.fillMaxWidth()
+    // Export Configuration Sheet (Only from bottom right tab)
+    if (uiState.isExportSheetVisible) {
+        ExportStudioSheet(
+            uiState = uiState,
+            onUpdateConfig = { viewModel.updateExportConfig(it) },
+            onDismiss = { viewModel.hideExportSheet() },
+            onConfirmExport = { viewModel.exportImage() }
+        )
+    }
+
+    // Trash Soft-Deletion Confirmation Dialog
+    if (uiState.showTrashConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.setShowTrashConfirmDialog(false) },
+            title = {
+                Text(
+                    text = "Move project to Trash?",
+                    fontWeight = FontWeight.Bold,
+                    color = KreaviloColors.TextPrimary
+                )
+            },
+            text = {
+                Text(
+                    text = "This project will be moved to Trash. It will be permanently deleted after 5 days or when the 15-day project limit expires.",
+                    fontSize = 13.sp,
+                    color = KreaviloColors.TextSecondary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.softDeleteProject() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F)),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(bottom = 12.dp)
-                    ) {
-                        // Tool Header with Done / Cancel
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = { viewModel.closeTool(applyChanges = false) },
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(Icons.Outlined.Close, contentDescription = "Cancel", tint = KreaviloColors.TextSecondary)
-                            }
+                    Text("Move to Trash", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.setShowTrashConfirmDialog(false) }) {
+                    Text("Cancel", color = KreaviloColors.TextSecondary)
+                }
+            },
+            containerColor = KreaviloColors.Surface,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 
-                            Text(
-                                text = uiState.activeTool.displayName,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = KreaviloColors.TextPrimary
-                            )
-
-                            IconButton(
-                                onClick = { viewModel.closeTool(applyChanges = true) },
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(Icons.Outlined.Check, contentDescription = "Apply", tint = KreaviloColors.Primary)
-                            }
-                        }
-
-                        HorizontalDivider(color = KreaviloColors.Border)
-
-                        // Tool Content Body
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                        ) {
-                            when (uiState.activeTool) {
-                                ActivePhotoTool.TUNE -> TuneToolPanel(uiState = uiState, viewModel = viewModel)
-                                ActivePhotoTool.CURVES -> CurvesToolPanel(uiState = uiState, viewModel = viewModel)
-                                ActivePhotoTool.HSL -> HslToolPanel(uiState = uiState, viewModel = viewModel)
-                                ActivePhotoTool.CROP -> CropToolPanel(uiState = uiState, viewModel = viewModel)
-                                ActivePhotoTool.WHITE_BALANCE -> WhiteBalanceToolPanel(uiState = uiState, viewModel = viewModel)
-                                ActivePhotoTool.DETAILS -> DetailsToolPanel(uiState = uiState, viewModel = viewModel)
-                                ActivePhotoTool.CREATIVE -> CreativeToolPanel(uiState = uiState, viewModel = viewModel)
-                                ActivePhotoTool.HISTOGRAM -> HistogramToolPanel(uiState = uiState, viewModel = viewModel)
-                                ActivePhotoTool.NONE -> Unit
-                            }
-                        }
-                    }
+    // Export Success Banner
+    uiState.exportSuccessUri?.let { uri ->
+        Surface(
+            color = Color(0xFF1B5E20),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Photo saved to Gallery at full resolution!",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = { viewModel.dismissExportMessage() },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
                 }
             }
+        }
+    }
 
-            // Export Sheet
-            if (uiState.isExportSheetVisible) {
-                ExportStudioSheet(
-                    uiState = uiState,
-                    onUpdateConfig = { viewModel.updateExportConfig(it) },
-                    onDismiss = { viewModel.hideExportSheet() },
-                    onConfirmExport = { viewModel.exportImage() }
+    // Loading overlay
+    if (uiState.isLoading || uiState.isExporting) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(color = KreaviloColors.Primary)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = if (uiState.isExporting) "Rendering full-resolution photo..." else "Loading photo...",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
                 )
             }
+        }
+    }
+}
 
-            // Export Success Feedback
-            uiState.exportSuccessUri?.let { uri ->
-                Surface(
-                    color = Color(0xFF1B5E20),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 24.dp)
-                        .padding(horizontal = 20.dp)
+// =========================================================================
+// ADAPTIVE PHOTO HEADER (>=48dp touch targets, zero overlap)
+// =========================================================================
+
+@Composable
+fun AdaptivePhotoHeader(
+    uiState: PhotoStudioUiState,
+    isNarrowScreen: Boolean,
+    onBack: () -> Unit,
+    onCamera: () -> Unit,
+    onGallery: () -> Unit,
+    onCompareToggle: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onFavoriteToggle: () -> Unit,
+    onTrashClick: () -> Unit
+) {
+    Surface(
+        color = KreaviloColors.Surface,
+        shadowElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        if (isNarrowScreen) {
+            // 2-Row Adaptive Layout for <=360dp devices to guarantee 48dp targets
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                // Row 1: Back, Title, Favorite, Trash
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = KreaviloColors.TextPrimary)
+                        }
                         Text(
-                            text = "Photo saved to Gallery at full resolution!",
-                            color = Color.White,
-                            fontSize = 12.sp,
+                            text = "Photo Studio",
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
+                            color = KreaviloColors.TextPrimary
                         )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Favorite Star
                         IconButton(
-                            onClick = { viewModel.dismissExportMessage() },
-                            modifier = Modifier.size(24.dp)
+                            onClick = onFavoriteToggle,
+                            enabled = uiState.sourceBitmap != null,
+                            modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = if (uiState.isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                contentDescription = "Favorite",
+                                tint = if (uiState.isFavorite) Color(0xFFFFB300) else KreaviloColors.TextSecondary
+                            )
+                        }
+                        // Trash
+                        IconButton(
+                            onClick = onTrashClick,
+                            enabled = uiState.sourceBitmap != null,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Delete,
+                                contentDescription = "Trash",
+                                tint = Color(0xFFE53935)
+                            )
                         }
                     }
                 }
-            }
 
-            // Error feedback
-            uiState.errorMessage?.let { msg ->
-                Surface(
-                    color = Color(0xFFB71C1C),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 24.dp)
-                        .padding(horizontal = 20.dp)
+                // Row 2: Camera, Gallery, Compare, Undo, Redo
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    IconButton(onClick = onCamera, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Outlined.PhotoCamera, contentDescription = "Camera", tint = KreaviloColors.Primary)
+                    }
+                    IconButton(onClick = onGallery, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = "Gallery", tint = KreaviloColors.Primary)
+                    }
+                    IconButton(
+                        onClick = onCompareToggle,
+                        enabled = uiState.sourceBitmap != null,
+                        modifier = Modifier.size(48.dp)
                     ) {
-                        Text(
-                            text = msg,
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(1f)
+                        Icon(
+                            Icons.Outlined.Compare,
+                            contentDescription = "Compare",
+                            tint = if (uiState.isComparingOriginal) KreaviloColors.Primary else KreaviloColors.TextSecondary
                         )
-                        IconButton(
-                            onClick = { viewModel.dismissErrorMessage() },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
-                        }
+                    }
+                    IconButton(
+                        onClick = onUndo,
+                        enabled = uiState.canUndo,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Undo,
+                            contentDescription = "Undo",
+                            tint = if (uiState.canUndo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary
+                        )
+                    }
+                    IconButton(
+                        onClick = onRedo,
+                        enabled = uiState.canRedo,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Redo,
+                            contentDescription = "Redo",
+                            tint = if (uiState.canRedo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary
+                        )
                     }
                 }
+            }
+        } else {
+            // Single-row toolbar for >=412dp devices
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = KreaviloColors.TextPrimary)
+                    }
+                    Text(
+                        text = "Photo Studio",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = KreaviloColors.TextPrimary,
+                        maxLines = 1
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onCamera, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Outlined.PhotoCamera, contentDescription = "Camera", tint = KreaviloColors.Primary)
+                    }
+                    IconButton(onClick = onGallery, modifier = Modifier.size(48.dp)) {
+                        Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = "Gallery", tint = KreaviloColors.Primary)
+                    }
+                    IconButton(
+                        onClick = onCompareToggle,
+                        enabled = uiState.sourceBitmap != null,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.Outlined.Compare,
+                            contentDescription = "Compare",
+                            tint = if (uiState.isComparingOriginal) KreaviloColors.Primary else KreaviloColors.TextSecondary
+                        )
+                    }
+                    IconButton(
+                        onClick = onUndo,
+                        enabled = uiState.canUndo,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Undo,
+                            contentDescription = "Undo",
+                            tint = if (uiState.canUndo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary
+                        )
+                    }
+                    IconButton(
+                        onClick = onRedo,
+                        enabled = uiState.canRedo,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Redo,
+                            contentDescription = "Redo",
+                            tint = if (uiState.canRedo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary
+                        )
+                    }
+                    IconButton(
+                        onClick = onFavoriteToggle,
+                        enabled = uiState.sourceBitmap != null,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (uiState.isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                            contentDescription = "Favorite",
+                            tint = if (uiState.isFavorite) Color(0xFFFFB300) else KreaviloColors.TextSecondary
+                        )
+                    }
+                    IconButton(
+                        onClick = onTrashClick,
+                        enabled = uiState.sourceBitmap != null,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = "Trash",
+                            tint = Color(0xFFE53935)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// =========================================================================
+// COMPACT TOOL DOCK (NEVER OBSCLURES PREVIEW)
+// =========================================================================
+
+@Composable
+fun CompactToolDock(
+    activeTool: ActivePhotoTool,
+    uiState: PhotoStudioUiState,
+    viewModel: PhotoStudioViewModel
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        // Compact Action Bar: [ X (Cancel) ]  Tool Name  [Reset]  [ ✓ (Apply) ]
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { viewModel.closeTool(applyChanges = false) },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(Icons.Outlined.Close, contentDescription = "Cancel", tint = KreaviloColors.TextSecondary)
             }
 
-            if (uiState.isLoading || uiState.isExporting) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = KreaviloColors.Primary)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = if (uiState.isExporting) "Rendering full-resolution photo..." else "Loading photo...",
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
-                        )
+            Text(
+                text = activeTool.displayName,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = KreaviloColors.TextPrimary
+            )
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (activeTool == ActivePhotoTool.CURVES) {
+                    IconButton(
+                        onClick = { viewModel.resetCurveChannel(uiState.activeCurveChannel) },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Outlined.RestartAlt, contentDescription = "Reset", tint = KreaviloColors.TextSecondary)
                     }
                 }
+
+                IconButton(
+                    onClick = { viewModel.closeTool(applyChanges = true) },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Outlined.Check, contentDescription = "Apply", tint = KreaviloColors.Primary)
+                }
             }
+        }
+
+        HorizontalDivider(color = KreaviloColors.Border, modifier = Modifier.padding(vertical = 4.dp))
+
+        // Tool Content
+        when (activeTool) {
+            ActivePhotoTool.TUNE -> TuneToolPanel(uiState = uiState, viewModel = viewModel)
+            ActivePhotoTool.CURVES -> CurvesToolPanel(uiState = uiState, viewModel = viewModel)
+            ActivePhotoTool.HSL -> HslToolPanel(uiState = uiState, viewModel = viewModel)
+            ActivePhotoTool.CROP -> CropToolPanel(uiState = uiState, viewModel = viewModel)
+            ActivePhotoTool.WHITE_BALANCE -> WhiteBalanceToolPanel(uiState = uiState, viewModel = viewModel)
+            ActivePhotoTool.DETAILS -> DetailsToolPanel(uiState = uiState, viewModel = viewModel)
+            ActivePhotoTool.CREATIVE -> CreativeToolPanel(uiState = uiState, viewModel = viewModel)
+            ActivePhotoTool.HISTOGRAM -> HistogramToolPanel(uiState = uiState, viewModel = viewModel)
+            ActivePhotoTool.NONE -> Unit
+        }
+    }
+}
+
+// =========================================================================
+// INTERACTIVE CROP WINDOW OVERLAY
+// =========================================================================
+
+@Composable
+fun CropWindowOverlay(
+    aspectRatio: CropAspectRatio,
+    cropRect: NormalizedCropRect,
+    onCropRectChange: (NormalizedCropRect) -> Unit
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val w = maxWidth.value
+        val h = maxHeight.value
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectDragGestures { change, dragAmount ->
+                        change.consume()
+                        val dx = dragAmount.x / size.width
+                        val dy = dragAmount.y / size.height
+                        val newRight = (cropRect.right + dx).coerceIn(cropRect.left + 0.15f, 1f)
+                        val newBottom = (cropRect.bottom + dy).coerceIn(cropRect.top + 0.15f, 1f)
+                        onCropRectChange(cropRect.copy(right = newRight, bottom = newBottom))
+                    }
+                }
+        ) {
+            val left = cropRect.left * size.width
+            val top = cropRect.top * size.height
+            val right = cropRect.right * size.width
+            val bottom = cropRect.bottom * size.height
+            val cropW = right - left
+            val cropH = bottom - top
+
+            // 1. Dimmed background outside crop area
+            drawRect(Color.Black.copy(alpha = 0.5f), Offset.Zero, Size(size.width, top))
+            drawRect(Color.Black.copy(alpha = 0.5f), Offset(0f, bottom), Size(size.width, size.height - bottom))
+            drawRect(Color.Black.copy(alpha = 0.5f), Offset(0f, top), Size(left, cropH))
+            drawRect(Color.Black.copy(alpha = 0.5f), Offset(right, top), Size(size.width - right, cropH))
+
+            // 2. White border around crop area
+            drawRect(Color.White, Offset(left, top), Size(cropW, cropH), style = Stroke(width = 2.5f))
+
+            // 3. 3x3 Rule of Thirds Grid lines
+            for (i in 1..2) {
+                val lx = left + cropW * (i / 3f)
+                val ly = top + cropH * (i / 3f)
+                drawLine(Color.White.copy(alpha = 0.45f), Offset(lx, top), Offset(lx, bottom), strokeWidth = 1f)
+                drawLine(Color.White.copy(alpha = 0.45f), Offset(left, ly), Offset(right, ly), strokeWidth = 1f)
+            }
+
+            // 4. Corner Handles
+            val cornerLen = 20f
+            val cornerStroke = 4.5f
+            val c = Color.White
+            // Top-Left
+            drawLine(c, Offset(left, top), Offset(left + cornerLen, top), cornerStroke)
+            drawLine(c, Offset(left, top), Offset(left, top + cornerLen), cornerStroke)
+            // Top-Right
+            drawLine(c, Offset(right, top), Offset(right - cornerLen, top), cornerStroke)
+            drawLine(c, Offset(right, top), Offset(right, top + cornerLen), cornerStroke)
+            // Bottom-Left
+            drawLine(c, Offset(left, bottom), Offset(left + cornerLen, bottom), cornerStroke)
+            drawLine(c, Offset(left, bottom), Offset(left, bottom - cornerLen), cornerStroke)
+            // Bottom-Right
+            drawLine(c, Offset(right, bottom), Offset(right - cornerLen, bottom), cornerStroke)
+            drawLine(c, Offset(right, bottom), Offset(right, bottom - cornerLen), cornerStroke)
         }
     }
 }
@@ -826,7 +1056,7 @@ fun TuneToolPanel(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Property Slider
         Row(
@@ -835,7 +1065,7 @@ fun TuneToolPanel(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(currentProp.label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.TextPrimary)
-            Text(String.format("%.2f", currentValue), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.Primary)
+            Text(String.format("%+.2f", currentValue), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.Primary)
         }
 
         Slider(
@@ -886,16 +1116,9 @@ fun CurvesToolPanel(
                     )
                 }
             }
-
-            IconButton(
-                onClick = { viewModel.resetCurveChannel(channel) },
-                modifier = Modifier.size(36.dp)
-            ) {
-                Icon(Icons.Outlined.RestartAlt, contentDescription = "Reset Channel", tint = KreaviloColors.TextSecondary)
-            }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Interactive Curves Canvas
         val strokeColor = when (channel) {
@@ -908,16 +1131,14 @@ fun CurvesToolPanel(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp)
+                .height(130.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color(0xFF1F2937))
                 .pointerInput(channel) {
                     detectTapGestures { offset ->
                         val normX = (offset.x / size.width).coerceIn(0f, 1f)
                         val normY = (1f - offset.y / size.height).coerceIn(0f, 1f)
-                        // Add or adjust control point
                         val mutable = points.toMutableList()
-                        // Replace nearest or add
                         val nearestIdx = mutable.indexOfFirst { kotlin.math.abs(it.x - normX) < 0.15f }
                         if (nearestIdx in 1 until mutable.size - 1) {
                             mutable[nearestIdx] = CurvePoint(normX, normY)
@@ -956,18 +1177,16 @@ fun CurvesToolPanel(
                         val cx = (x0 + x1) / 2f
                         path.cubicTo(cx, y0, cx, y1, x1, y1)
                     }
-                    drawPath(path, strokeColor, style = Stroke(width = 4f))
+                    drawPath(path, strokeColor, style = Stroke(width = 3.5f))
 
                     // Draw Control Points
                     for (pt in sorted) {
-                        drawCircle(Color.White, radius = 8f, center = Offset(pt.x * w, (1f - pt.y) * h))
-                        drawCircle(strokeColor, radius = 5f, center = Offset(pt.x * w, (1f - pt.y) * h))
+                        drawCircle(Color.White, radius = 7f, center = Offset(pt.x * w, (1f - pt.y) * h))
+                        drawCircle(strokeColor, radius = 4f, center = Offset(pt.x * w, (1f - pt.y) * h))
                     }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text("Tap on grid to add or adjust curve points.", fontSize = 10.sp, color = KreaviloColors.TextTertiary)
     }
 }
 
@@ -989,7 +1208,7 @@ fun HslToolPanel(
                 val isSelected = band == activeBand
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(34.dp)
                         .clip(CircleShape)
                         .background(Color(band.colorHex))
                         .border(
@@ -1012,7 +1231,7 @@ fun HslToolPanel(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Hue Slider
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -1094,7 +1313,7 @@ fun CropToolPanel(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Straighten Slider (-45° to +45°)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -1108,9 +1327,9 @@ fun CropToolPanel(
             colors = SliderDefaults.colors(thumbColor = KreaviloColors.Primary, activeTrackColor = KreaviloColors.Primary)
         )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // Aspect Ratio Selector Chips
+        // Aspect Ratio Selector Chips (Original, Freeform, 1:1, 4:5, 9:16, 16:9, 3:4, 2:3)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
@@ -1140,7 +1359,7 @@ fun WhiteBalanceToolPanel(
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Temperature (Warmth)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = KreaviloColors.TextPrimary)
-            Text(String.format("%.2f", adj.warmth), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.Primary)
+            Text(String.format("%+.2f", adj.warmth), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.Primary)
         }
         Slider(
             value = adj.warmth,
@@ -1149,11 +1368,11 @@ fun WhiteBalanceToolPanel(
             colors = SliderDefaults.colors(thumbColor = KreaviloColors.Primary, activeTrackColor = KreaviloColors.Primary)
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Tint (Green / Magenta)", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = KreaviloColors.TextPrimary)
-            Text(String.format("%.2f", adj.tint), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.Primary)
+            Text(String.format("%+.2f", adj.tint), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.Primary)
         }
         Slider(
             value = adj.tint,
@@ -1182,7 +1401,7 @@ fun DetailsToolPanel(
             colors = SliderDefaults.colors(thumbColor = KreaviloColors.Primary, activeTrackColor = KreaviloColors.Primary)
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Structure / Clarity", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = KreaviloColors.TextPrimary)
@@ -1242,7 +1461,7 @@ fun HistogramToolPanel(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Live Overlay", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.TextPrimary)
+            Text("Live Overlay on Photo", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = KreaviloColors.TextPrimary)
             Switch(
                 checked = uiState.isHistogramVisible,
                 onCheckedChange = { viewModel.toggleHistogram() }
@@ -1256,10 +1475,10 @@ fun HistogramToolPanel(
                 histogram = hist,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(100.dp)
+                    .height(90.dp)
             )
         } else {
-            Text("Histogram data calculating...", fontSize = 11.sp, color = KreaviloColors.TextSecondary)
+            Text("Histogram computing...", fontSize = 11.sp, color = KreaviloColors.TextSecondary)
         }
     }
 }
@@ -1271,8 +1490,8 @@ fun FloatingHistogramWidget(
 ) {
     Box(
         modifier = modifier
-            .width(160.dp)
-            .height(80.dp)
+            .width(150.dp)
+            .height(75.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(Color.Black.copy(alpha = 0.75f))
             .padding(6.dp)
@@ -1305,7 +1524,7 @@ fun FloatingHistogramWidget(
 }
 
 // =========================================================================
-// EXPORT STUDIO SHEET
+// EXPORT STUDIO SHEET (ONLY ACCESSED FROM BOTTOM RIGHT TAB)
 // =========================================================================
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1413,7 +1632,7 @@ fun ExportStudioSheet(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Explicit Pixel Resolution Selector
+            // Explicit Pixel Resolution Selector (NO FPS!)
             Text("Target Dimensions (px)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = KreaviloColors.TextPrimary)
             Spacer(modifier = Modifier.height(6.dp))
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1424,7 +1643,7 @@ fun ExportStudioSheet(
                         ExportDimension.UHD_4K -> "3840 px Max Width/Height (Ultra HD)"
                         ExportDimension.QHD_1440P -> "2560 px Max Width/Height (Quad HD)"
                         ExportDimension.FHD_1080P -> "1920 px Max Width/Height (Full HD)"
-                        ExportDimension.SQUARE_1080 -> "1080 × 1080 px (1:1 Instagram Post)"
+                        ExportDimension.SQUARE_1080 -> "1080 × 1080 px (1:1 Square)"
                     }
 
                     Surface(

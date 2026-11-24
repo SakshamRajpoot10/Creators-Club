@@ -5,6 +5,7 @@ import com.creatorsclub.engine.image.model.CropAspectRatio
 import com.creatorsclub.engine.image.model.CropTransformState
 import com.creatorsclub.engine.image.model.ExportDimension
 import com.creatorsclub.engine.image.model.ImageAdjustmentState
+import com.creatorsclub.engine.image.model.NormalizedCropRect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
@@ -48,8 +49,12 @@ object BitmapProcessor {
             sourceBitmap
         }
 
-        // 2. Aspect ratio crop
-        val croppedBitmap = applyCrop(rotatedBitmap, cropTransformState.aspectRatio)
+        // 2. Aspect ratio crop / Custom crop window
+        val croppedBitmap = applyCrop(
+            bitmap = rotatedBitmap,
+            targetRatio = cropTransformState.aspectRatio,
+            customRect = cropTransformState.cropRect
+        )
 
         // 3. ColorMatrix (Tone, Exposure, Saturation, Warmth, Filter Preset * Intensity)
         val composeMatrix = ColorMatrixProcessor.createCombinedColorMatrix(adjustmentState)
@@ -113,25 +118,43 @@ object BitmapProcessor {
         outputBitmap
     }
 
-    private fun applyCrop(bitmap: Bitmap, targetRatio: CropAspectRatio): Bitmap {
-        val desiredRatio = targetRatio.ratio ?: return bitmap
+    fun applyCrop(
+        bitmap: Bitmap,
+        targetRatio: CropAspectRatio,
+        customRect: NormalizedCropRect? = null
+    ): Bitmap {
+        val width = bitmap.width
+        val height = bitmap.height
 
-        val currentRatio = bitmap.width.toFloat() / bitmap.height.toFloat()
+        // If a customized cropRect is specified (e.g. from dragging handles)
+        if (customRect != null && (customRect.left > 0.001f || customRect.top > 0.001f || customRect.right < 0.999f || customRect.bottom < 0.999f)) {
+            val pixelLeft = (customRect.left * width).roundToInt().coerceIn(0, width - 2)
+            val pixelTop = (customRect.top * height).roundToInt().coerceIn(0, height - 2)
+            val pixelRight = (customRect.right * width).roundToInt().coerceIn(pixelLeft + 1, width)
+            val pixelBottom = (customRect.bottom * height).roundToInt().coerceIn(pixelTop + 1, height)
+            val cropW = (pixelRight - pixelLeft).coerceAtLeast(1)
+            val cropH = (pixelBottom - pixelTop).coerceAtLeast(1)
+            return Bitmap.createBitmap(bitmap, pixelLeft, pixelTop, cropW, cropH)
+        }
+
+        // Preset ratio calculation (e.g., 16:9, 4:5, 1:1, etc.)
+        val desiredRatio = targetRatio.ratio ?: return bitmap
+        val currentRatio = width.toFloat() / height.toFloat()
         val cropWidth: Int
         val cropHeight: Int
 
         if (currentRatio > desiredRatio) {
-            // Image is wider than desired ratio: crop width
-            cropHeight = bitmap.height
-            cropWidth = (bitmap.height * desiredRatio).roundToInt().coerceAtMost(bitmap.width)
+            // Image is wider than desired ratio: height-constrained, crop width
+            cropHeight = height
+            cropWidth = (height * desiredRatio).roundToInt().coerceIn(1, width)
         } else {
-            // Image is taller than desired ratio: crop height
-            cropWidth = bitmap.width
-            cropHeight = (bitmap.width / desiredRatio).roundToInt().coerceAtMost(bitmap.height)
+            // Image is taller than desired ratio: width-constrained, crop height
+            cropWidth = width
+            cropHeight = (width / desiredRatio).roundToInt().coerceIn(1, height)
         }
 
-        val startX = ((bitmap.width - cropWidth) / 2).coerceAtLeast(0)
-        val startY = ((bitmap.height - cropHeight) / 2).coerceAtLeast(0)
+        val startX = ((width - cropWidth) / 2).coerceIn(0, width - cropWidth)
+        val startY = ((height - cropHeight) / 2).coerceIn(0, height - cropHeight)
 
         return Bitmap.createBitmap(bitmap, startX, startY, cropWidth, cropHeight)
     }

@@ -9,6 +9,7 @@ import com.creatorsclub.engine.image.model.ExportConfig
 import com.creatorsclub.engine.image.model.FilterPreset
 import com.creatorsclub.engine.image.model.HslColorBand
 import com.creatorsclub.engine.image.model.ImageAdjustmentState
+import com.creatorsclub.engine.image.model.NormalizedCropRect
 import com.creatorsclub.engine.image.processor.HistogramData
 
 enum class PhotoNavTab(val title: String) {
@@ -49,6 +50,13 @@ data class PhotoStudioUiState(
     val imageUri: Uri? = null,
     val originalWidth: Int = 0,
     val originalHeight: Int = 0,
+
+    // Durable Project Lifecycle
+    val projectId: String? = null,
+    val projectName: String = "Untitled Photo",
+    val isFavorite: Boolean = false,
+    val showTrashConfirmDialog: Boolean = false,
+    val isProjectTrashed: Boolean = false,
 
     // Navigation & Tool State
     val navTab: PhotoNavTab = PhotoNavTab.LOOKS,

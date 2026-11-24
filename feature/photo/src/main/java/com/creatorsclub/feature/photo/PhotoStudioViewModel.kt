@@ -12,18 +12,10 @@ import android.net.Uri
 import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.creatorsclub.core.database.KreaviloDatabase
+import com.creatorsclub.core.database.model.ProjectEntity
 import com.creatorsclub.core.storage.manager.StorageManager
-import com.creatorsclub.engine.image.model.CropAspectRatio
-import com.creatorsclub.engine.image.model.CropTransformState
-import com.creatorsclub.engine.image.model.CurveChannel
-import com.creatorsclub.engine.image.model.CurvePoint
-import com.creatorsclub.engine.image.model.ExportConfig
-import com.creatorsclub.engine.image.model.ExportDimension
-import com.creatorsclub.engine.image.model.ExportFormat
-import com.creatorsclub.engine.image.model.FilterPreset
-import com.creatorsclub.engine.image.model.HslBandAdjustment
-import com.creatorsclub.engine.image.model.HslColorBand
-import com.creatorsclub.engine.image.model.ImageAdjustmentState
+import com.creatorsclub.engine.image.model.*
 import com.creatorsclub.engine.image.processor.BitmapProcessor
 import com.creatorsclub.engine.image.processor.HistogramProcessor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,7 +27,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Stack
+import java.util.UUID
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -45,6 +42,9 @@ class PhotoStudioViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
     private val storageManager = StorageManager(application)
+    private val db = KreaviloDatabase.getInstance(application)
+    private val projectDao = db.projectDao()
+    private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
     private val _uiState = MutableStateFlow(PhotoStudioUiState())
     val uiState: StateFlow<PhotoStudioUiState> = _uiState.asStateFlow()
@@ -62,9 +62,13 @@ class PhotoStudioViewModel @Inject constructor(
                 val thumbnail = withContext(Dispatchers.Default) {
                     runCatching { Bitmap.createScaledBitmap(bitmap, 160, 160, true) }.getOrNull()
                 }
+                val newProjectId = "proj_photo_${UUID.randomUUID().toString().take(8)}"
                 _uiState.update {
                     it.copy(
                         isLoading = false,
+                        projectId = newProjectId,
+                        projectName = "Photo ${System.currentTimeMillis() % 10000}",
+                        isFavorite = false,
                         sourceBitmap = bitmap,
                         previewThumbnail = thumbnail,
                         originalWidth = bitmap.width,
@@ -79,6 +83,9 @@ class PhotoStudioViewModel @Inject constructor(
                 redoStack.clear()
                 calculateEstimatedFileSize()
                 refreshHistogram(bitmap)
+
+                // Durable project auto-creation on successful import
+                autoCreateDurableProject(newProjectId, bitmap, thumbnail, uri)
             } else {
                 _uiState.update {
                     it.copy(
@@ -92,8 +99,12 @@ class PhotoStudioViewModel @Inject constructor(
 
     fun setSourceBitmap(bitmap: Bitmap) {
         val thumbnail = runCatching { Bitmap.createScaledBitmap(bitmap, 160, 160, true) }.getOrNull()
+        val newProjectId = "proj_photo_${UUID.randomUUID().toString().take(8)}"
         _uiState.update {
             it.copy(
+                projectId = newProjectId,
+                projectName = "Photo ${System.currentTimeMillis() % 10000}",
+                isFavorite = false,
                 sourceBitmap = bitmap,
                 previewThumbnail = thumbnail,
                 originalWidth = bitmap.width,
@@ -108,6 +119,10 @@ class PhotoStudioViewModel @Inject constructor(
         redoStack.clear()
         calculateEstimatedFileSize()
         refreshHistogram(bitmap)
+
+        viewModelScope.launch {
+            autoCreateDurableProject(newProjectId, bitmap, thumbnail, null)
+        }
     }
 
     fun loadImageFromBitmap(bitmap: Bitmap) {
@@ -155,6 +170,161 @@ class PhotoStudioViewModel @Inject constructor(
         setSourceBitmap(bitmap)
     }
 
+    // --- Durable Project Persistence & Auto-Creation ---
+
+    private suspend fun autoCreateDurableProject(
+        projectId: String,
+        bitmap: Bitmap,
+        thumbnail: Bitmap?,
+        sourceUri: Uri?
+    ) = withContext(Dispatchers.IO) {
+        runCatching {
+            val projectsDir = storageManager.getProjectsDir()
+
+            // Save durable source copy
+            val sourceFile = File(projectsDir, "${projectId}_source.png")
+            FileOutputStream(sourceFile).use { fos ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
+            }
+
+            // Save thumbnail
+            val thumbFile = File(projectsDir, "${projectId}_thumb.jpg")
+            if (thumbnail != null) {
+                FileOutputStream(thumbFile).use { fos ->
+                    thumbnail.compress(Bitmap.CompressFormat.JPEG, 85, fos)
+                }
+            }
+
+            // Save recipe JSON
+            val recipe = PhotoEditRecipe(
+                version = 1,
+                sourceUri = sourceFile.absolutePath,
+                adjustments = _uiState.value.adjustments,
+                cropTransform = _uiState.value.cropTransform
+            )
+            val recipeFile = File(projectsDir, "${projectId}_recipe.json")
+            recipeFile.writeText(json.encodeToString(recipe))
+
+            val projectEntity = ProjectEntity(
+                projectId = projectId,
+                name = _uiState.value.projectName,
+                studioType = "PHOTO",
+                createdAt = System.currentTimeMillis(),
+                modifiedAt = System.currentTimeMillis(),
+                canvasWidth = bitmap.width,
+                canvasHeight = bitmap.height,
+                aspectRatio = _uiState.value.cropTransform.aspectRatio.displayName,
+                thumbnailPath = thumbFile.absolutePath,
+                projectFilePath = recipeFile.absolutePath,
+                isFavorite = false,
+                isDeleted = false,
+                deletedAt = null
+            )
+
+            projectDao.insertProject(projectEntity)
+        }
+    }
+
+    fun loadExistingProject(projectId: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true) }
+            val project = projectDao.getProjectById(projectId)
+            if (project != null) {
+                val recipeFile = File(project.projectFilePath)
+                val recipe: PhotoEditRecipe? = if (recipeFile.exists()) {
+                    runCatching { json.decodeFromString<PhotoEditRecipe>(recipeFile.readText()) }.getOrNull()
+                } else null
+
+                val sourcePath = recipe?.sourceUri ?: project.projectFilePath
+                val sourceFile = File(sourcePath)
+                val bitmap = if (sourceFile.exists()) {
+                    BitmapFactory.decodeFile(sourceFile.absolutePath)
+                } else null
+
+                if (bitmap != null) {
+                    val thumbnail = runCatching { Bitmap.createScaledBitmap(bitmap, 160, 160, true) }.getOrNull()
+                    val adjustments = recipe?.adjustments ?: ImageAdjustmentState()
+                    val cropTransform = recipe?.cropTransform ?: CropTransformState()
+
+                    withContext(Dispatchers.Main) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                projectId = project.projectId,
+                                projectName = project.name,
+                                isFavorite = project.isFavorite,
+                                sourceBitmap = bitmap,
+                                previewThumbnail = thumbnail,
+                                originalWidth = bitmap.width,
+                                originalHeight = bitmap.height,
+                                adjustments = adjustments,
+                                cropTransform = cropTransform,
+                                canUndo = false,
+                                canRedo = false
+                            )
+                        }
+                        undoStack.clear()
+                        redoStack.clear()
+                        calculateEstimatedFileSize()
+                        refreshHistogram(bitmap)
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        _uiState.update { it.copy(isLoading = false, errorMessage = "Could not load project asset") }
+                    }
+                }
+            } else {
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(isLoading = false, errorMessage = "Project not found") }
+                }
+            }
+        }
+    }
+
+    private fun persistAutosave() {
+        val projectId = _uiState.value.projectId ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val project = projectDao.getProjectById(projectId) ?: return@launch
+                val recipe = PhotoEditRecipe(
+                    version = 1,
+                    sourceUri = null,
+                    adjustments = _uiState.value.adjustments,
+                    cropTransform = _uiState.value.cropTransform
+                )
+                val recipeFile = File(project.projectFilePath)
+                recipeFile.writeText(json.encodeToString(recipe))
+
+                val updatedProject = project.copy(
+                    modifiedAt = System.currentTimeMillis(),
+                    aspectRatio = _uiState.value.cropTransform.aspectRatio.displayName
+                )
+                projectDao.updateProject(updatedProject)
+            }
+        }
+    }
+
+    fun toggleFavorite() {
+        val projectId = _uiState.value.projectId ?: return
+        val newFav = !_uiState.value.isFavorite
+        _uiState.update { it.copy(isFavorite = newFav) }
+        viewModelScope.launch(Dispatchers.IO) {
+            projectDao.setFavorite(projectId, newFav)
+        }
+    }
+
+    fun setShowTrashConfirmDialog(show: Boolean) {
+        _uiState.update { it.copy(showTrashConfirmDialog = show) }
+    }
+
+    fun softDeleteProject() {
+        val projectId = _uiState.value.projectId ?: return
+        _uiState.update { it.copy(showTrashConfirmDialog = false, isProjectTrashed = true) }
+        viewModelScope.launch(Dispatchers.IO) {
+            projectDao.softDeleteProject(projectId)
+        }
+    }
+
     private fun refreshHistogram(bitmap: Bitmap) {
         histogramJob?.cancel()
         histogramJob = viewModelScope.launch {
@@ -191,6 +361,7 @@ class PhotoStudioViewModel @Inject constructor(
         } else {
             saveStateForUndo()
             _uiState.update { it.copy(activeTool = ActivePhotoTool.NONE) }
+            persistAutosave()
         }
         snapshotBeforeTool = null
     }
@@ -218,6 +389,7 @@ class PhotoStudioViewModel @Inject constructor(
         _uiState.update {
             it.copy(adjustments = it.adjustments.copy(filterPreset = preset, filterIntensity = 1.0f))
         }
+        persistAutosave()
     }
 
     fun setFilterIntensity(intensity: Float) {
@@ -308,9 +480,20 @@ class PhotoStudioViewModel @Inject constructor(
 
     fun setAspectRatio(ratio: CropAspectRatio) {
         _uiState.update {
-            it.copy(cropTransform = it.cropTransform.copy(aspectRatio = ratio))
+            it.copy(
+                cropTransform = it.cropTransform.copy(
+                    aspectRatio = ratio,
+                    cropRect = NormalizedCropRect() // Reset custom window to preset bounds
+                )
+            )
         }
         calculateEstimatedFileSize()
+    }
+
+    fun updateCropRect(cropRect: NormalizedCropRect) {
+        _uiState.update {
+            it.copy(cropTransform = it.cropTransform.copy(cropRect = cropRect))
+        }
     }
 
     fun rotate90() {
@@ -362,6 +545,7 @@ class PhotoStudioViewModel @Inject constructor(
                     canRedo = true
                 )
             }
+            persistAutosave()
         }
     }
 
@@ -377,6 +561,7 @@ class PhotoStudioViewModel @Inject constructor(
                     canRedo = redoStack.isNotEmpty()
                 )
             }
+            persistAutosave()
         }
     }
 

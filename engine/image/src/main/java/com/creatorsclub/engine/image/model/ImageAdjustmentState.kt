@@ -62,6 +62,14 @@ enum class CropAspectRatio(val displayName: String, val ratio: Float?) {
 }
 
 @Serializable
+data class NormalizedCropRect(
+    val left: Float = 0f,   // 0f to 1f
+    val top: Float = 0f,    // 0f to 1f
+    val right: Float = 1f,  // 0f to 1f
+    val bottom: Float = 1f  // 0f to 1f
+)
+
+@Serializable
 enum class HslColorBand(val displayName: String, val colorHex: Long) {
     RED("Red", 0xFFFF3B30),
     ORANGE("Orange", 0xFFFF9500),
@@ -157,10 +165,19 @@ data class ImageAdjustmentState(
 @Serializable
 data class CropTransformState(
     val aspectRatio: CropAspectRatio = CropAspectRatio.ORIGINAL,
+    val cropRect: NormalizedCropRect = NormalizedCropRect(),
     val rotationDegrees: Float = 0f,
     val straightenDegrees: Float = 0f, // -45f to 45f
     val isFlippedHorizontal: Boolean = false,
     val isFlippedVertical: Boolean = false
+)
+
+@Serializable
+data class PhotoEditRecipe(
+    val version: Int = 1,
+    val sourceUri: String? = null,
+    val adjustments: ImageAdjustmentState = ImageAdjustmentState(),
+    val cropTransform: CropTransformState = CropTransformState()
 )
 
 @Serializable

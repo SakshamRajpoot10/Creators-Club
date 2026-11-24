@@ -54,6 +54,11 @@ import com.creatorsclub.feature.interior.InteriorStudioScreen
 import com.creatorsclub.feature.interior.InteriorStudioViewModel
 import com.creatorsclub.feature.photo.PhotoStudioScreen
 import com.creatorsclub.feature.photo.PhotoStudioViewModel
+import com.creatorsclub.feature.photo.removebg.RemoveBgScreen
+import com.creatorsclub.feature.photo.removebg.RemoveBgViewModel
+import com.creatorsclub.core.database.retention.ProjectRetentionManager
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.creatorsclub.feature.product.ProductStudioScreen
 import com.creatorsclub.feature.product.ProductStudioViewModel
 import com.creatorsclub.feature.projects.ProjectsScreen
@@ -73,6 +78,12 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Perform automatic project retention cleanup on app startup
+        lifecycleScope.launch {
+            ProjectRetentionManager.performRetentionCleanup(applicationContext)
+        }
+
         setContent {
             KreaviloTheme {
                 val navController = rememberNavController()
@@ -80,6 +91,7 @@ class MainActivity : ComponentActivity() {
                 fun navigateToStudio(studioId: String) {
                     when (studioId.lowercase()) {
                         "photo" -> navController.navigate("photo_studio")
+                        "remove_bg", "removebg" -> navController.navigate("remove_bg_studio")
                         "design" -> navController.navigate("design_studio")
                         "product" -> navController.navigate("product_studio")
                         "drawing" -> navController.navigate("drawing_studio")
@@ -139,6 +151,15 @@ class MainActivity : ComponentActivity() {
                     composable("photo_studio") {
                         val viewModel: PhotoStudioViewModel = hiltViewModel()
                         PhotoStudioScreen(
+                            viewModel = viewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    // 1B. Quick Creative Tool: Remove Background Studio
+                    composable("remove_bg_studio") {
+                        val viewModel: RemoveBgViewModel = hiltViewModel()
+                        RemoveBgScreen(
                             viewModel = viewModel,
                             onNavigateBack = { navController.popBackStack() }
                         )
@@ -389,7 +410,7 @@ fun HomeDashboardScreen(
     val quickTools = remember {
         listOf(
             QuickToolItem("Edit Photo", "photo", "Import Photo", Icons.Outlined.PhotoCamera, KreaviloColors.PhotoStudioBadge),
-            QuickToolItem("Remove BG", "product", "Import Product Photo", Icons.Outlined.AutoFixHigh, KreaviloColors.ProductStudioBadge),
+            QuickToolItem("Remove BG", "remove_bg", "Instant Cutout", Icons.Outlined.AutoFixHigh, KreaviloColors.ProductStudioBadge),
             QuickToolItem("Create Poster", "design", "Choose Template", Icons.Outlined.DesignServices, KreaviloColors.DesignStudioBadge),
             QuickToolItem("Start Drawing", "drawing", "Blank Sketchbook", Icons.Outlined.Draw, KreaviloColors.DrawingStudioBadge),
             QuickToolItem("Record Voice", "audio", "Record Voiceover", Icons.Outlined.Mic, KreaviloColors.AudioStudioBadge),

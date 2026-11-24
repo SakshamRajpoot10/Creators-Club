@@ -41,4 +41,13 @@ interface ProjectDao {
 
     @Query("SELECT * FROM projects_table WHERE is_deleted = 0 AND name LIKE '%' || :query || '%' ORDER BY modified_at DESC")
     fun searchProjects(query: String): Flow<List<ProjectEntity>>
+
+    @Query("SELECT * FROM projects_table WHERE is_deleted = 1 AND (:currentTime - deleted_at) > :trashRetentionMs")
+    suspend fun getProjectsDueForTrashPurge(currentTime: Long, trashRetentionMs: Long): List<ProjectEntity>
+
+    @Query("SELECT * FROM projects_table WHERE (:currentTime - created_at) > :maxActiveRetentionMs")
+    suspend fun getProjectsDueForHardExpiry(currentTime: Long, maxActiveRetentionMs: Long): List<ProjectEntity>
+
+    @Query("SELECT * FROM projects_table")
+    suspend fun getAllProjectsSync(): List<ProjectEntity>
 }
