@@ -3,6 +3,7 @@ package com.creatorsclub.studio
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -337,24 +340,17 @@ fun MainDashboardScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
+                    Image(
+                        painter = painterResource(id = R.drawable.creators_club_icon),
+                        contentDescription = "Creators Club Logo",
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(42.dp)
                             .clip(CircleShape)
-                            .background(KreaviloColors.Primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.AutoAwesome,
-                            contentDescription = "Kreavilo Logo",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    )
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "Kreavilo",
+                            text = "Creators Club",
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = KreaviloColors.TextPrimary,
@@ -382,38 +378,51 @@ fun MainDashboardScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Hero Greeting Card
+            // Hero Greeting Card with Landscape Banner
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = KreaviloColors.PrimaryContainer.copy(alpha = 0.5f))
+                colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(18.dp)) {
-                    Text(
-                        text = "What will you create today?",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = KreaviloColors.Primary
-                        )
+                Column {
+                    Image(
+                        painter = painterResource(id = R.drawable.promo_landscape_banner),
+                        contentDescription = "Creators Club Studio Banner",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(130.dp)
+                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                        contentScale = ContentScale.Crop
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Your imagination starts here. Select any studio or ask Creator AI.",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = KreaviloColors.TextSecondary
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "What will you create today?",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = KreaviloColors.TextPrimary
+                            )
                         )
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Button(
-                        onClick = { onNavigateToStudio("photo") },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("+ Create project", fontWeight = FontWeight.SemiBold)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Your imagination starts here. Select any studio or ask Creator AI.",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = KreaviloColors.TextSecondary,
+                                fontSize = 12.sp
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { onNavigateToStudio("photo") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("+ Create project", fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }
@@ -538,20 +547,14 @@ fun MainDashboardScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
+                        Image(
+                            painter = painterResource(id = R.drawable.creator_ai_mascot),
+                            contentDescription = "Creator AI",
                             modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(KreaviloColors.AccentContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.AutoAwesome,
-                                contentDescription = "Creator AI",
-                                tint = KreaviloColors.Accent,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
+                                .size(44.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(

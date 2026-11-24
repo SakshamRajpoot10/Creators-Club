@@ -6,6 +6,8 @@ build/
 **/.cxx/
 *.apk
 *.aab
+!APK/
+!APK/*.apk
 
 # IDE & Editor files
 .idea/

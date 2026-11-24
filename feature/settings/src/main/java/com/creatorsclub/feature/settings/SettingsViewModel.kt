@@ -1,6 +1,7 @@
 package com.creatorsclub.feature.settings
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.creatorsclub.core.storage.manager.StorageManager
@@ -19,12 +20,21 @@ data class ModelInfo(
     val isReady: Boolean
 )
 
+data class CreatorAssetStats(
+    val fontsCount: Int = 0,
+    val audioCount: Int = 0,
+    val stickersCount: Int = 0,
+    val bannersCount: Int = 0
+)
+
 data class SettingsUiState(
     val cacheSizeMb: Float = 0f,
     val models: List<ModelInfo> = emptyList(),
     val appVersion: String = "1.0.0-PROD",
     val author: String = "Saksham Rajpoot",
-    val isCacheCleared: Boolean = false
+    val isCacheCleared: Boolean = false,
+    val assetStats: CreatorAssetStats = CreatorAssetStats(),
+    val statusMessage: String? = null
 )
 
 @HiltViewModel
@@ -48,6 +58,7 @@ class SettingsViewModel @Inject constructor(
 
     init {
         refreshCacheSize()
+        refreshCreatorHubStats()
     }
 
     private fun refreshCacheSize() {
@@ -55,10 +66,43 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(cacheSizeMb = bytes / (1024f * 1024f)) }
     }
 
+    fun refreshCreatorHubStats() {
+        val fonts = storageManager.listImportedAssets("fonts").size
+        val audio = storageManager.listImportedAssets("audio").size
+        val stickers = storageManager.listImportedAssets("stickers").size
+        val banners = storageManager.listImportedAssets("banners").size
+        _uiState.update {
+            it.copy(
+                assetStats = CreatorAssetStats(
+                    fontsCount = fonts,
+                    audioCount = audio,
+                    stickersCount = stickers,
+                    bannersCount = banners
+                )
+            )
+        }
+    }
+
+    fun importAsset(uri: Uri, subfolder: String, filename: String) {
+        viewModelScope.launch {
+            val result = storageManager.importAssetFromUri(uri, subfolder, filename)
+            if (result.isSuccess) {
+                refreshCreatorHubStats()
+                _uiState.update { it.copy(statusMessage = "Successfully imported $filename into $subfolder library!") }
+            } else {
+                _uiState.update { it.copy(statusMessage = "Failed to import asset: ${result.exceptionOrNull()?.message}") }
+            }
+        }
+    }
+
     fun clearCache() {
         viewModelScope.launch {
             storageManager.clearCache()
             _uiState.update { it.copy(cacheSizeMb = 0f, isCacheCleared = true) }
         }
+    }
+
+    fun dismissStatusMessage() {
+        _uiState.update { it.copy(statusMessage = null) }
     }
 }

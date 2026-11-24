@@ -1,5 +1,6 @@
 package com.creatorsclub.feature.ai_assistant
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,20 +41,14 @@ fun CreatorAiScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
+                        Image(
+                            painter = painterResource(id = R.drawable.creator_ai_mascot),
+                            contentDescription = "Creator AI",
                             modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(KreaviloColors.AccentContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.AutoAwesome,
-                                contentDescription = null,
-                                tint = KreaviloColors.Accent,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                                .size(34.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "Creator AI",
@@ -131,24 +128,18 @@ fun CreatorAiScreen(
                     .padding(vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
+                Image(
+                    painter = painterResource(id = R.drawable.creator_ai_mascot),
+                    contentDescription = "Creator AI Mascot",
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(KreaviloColors.AccentContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.AutoAwesome,
-                        contentDescription = null,
-                        tint = KreaviloColors.Accent,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(6.dp))
+                        .size(68.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Your creative companion",
-                    fontSize = 15.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = KreaviloColors.TextPrimary
                 )

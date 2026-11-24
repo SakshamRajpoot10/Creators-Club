@@ -97,4 +97,34 @@ class StorageManager(private val context: Context) {
         }
         return length
     }
+
+    /**
+     * Directory for creator-imported assets (fonts, audio, stickers, banners).
+     */
+    fun getCreatorHubDir(subfolder: String): File {
+        val dir = File(context.filesDir, "creator_hub/$subfolder")
+        dir.mkdirs()
+        return dir
+    }
+
+    fun importAssetFromUri(sourceUri: Uri, subfolder: String, destinationFileName: String): Result<File> = runCatching {
+        val destDir = getCreatorHubDir(subfolder)
+        val destFile = File(destDir, destinationFileName)
+        context.contentResolver.openInputStream(sourceUri)?.use { input ->
+            FileOutputStream(destFile).use { output ->
+                input.copyTo(output)
+            }
+        } ?: throw IllegalStateException("Cannot open input stream for URI: $sourceUri")
+        destFile
+    }
+
+    fun listImportedAssets(subfolder: String): List<File> {
+        val dir = getCreatorHubDir(subfolder)
+        return dir.listFiles()?.filter { it.isFile }?.toList() ?: emptyList()
+    }
+
+    fun deleteImportedAsset(subfolder: String, fileName: String): Boolean {
+        val file = File(getCreatorHubDir(subfolder), fileName)
+        return if (file.exists()) file.delete() else false
+    }
 }
