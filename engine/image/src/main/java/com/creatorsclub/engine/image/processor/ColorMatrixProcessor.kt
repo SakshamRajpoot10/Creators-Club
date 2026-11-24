@@ -50,27 +50,81 @@ object ColorMatrixProcessor {
             result.timesAssign(saturationMatrix)
         }
 
-        // 4. Warmth (Temperature) adjustment
-        if (state.warmth != 0f) {
+        // 4. Warmth (Temperature) & Tint adjustments
+        if (state.warmth != 0f || state.tint != 0f) {
             val redScale = 1f + (state.warmth * 0.15f)
-            val blueScale = 1f - (state.warmth * 0.15f)
-            val warmthMatrix = ColorMatrix(
+            val greenScale = 1f + (state.tint * 0.12f)
+            val blueScale = 1f - (state.warmth * 0.15f) - (state.tint * 0.05f)
+            val whiteBalanceMatrix = ColorMatrix(
                 floatArrayOf(
                     redScale, 0f, 0f, 0f, 0f,
-                    0f, 1f, 0f, 0f, 0f,
+                    0f, greenScale, 0f, 0f, 0f,
                     0f, 0f, blueScale, 0f, 0f,
                     0f, 0f, 0f, 1f, 0f
                 )
             )
-            result.timesAssign(warmthMatrix)
+            result.timesAssign(whiteBalanceMatrix)
         }
 
-        // 5. Preset filters
-        if (state.filterPreset != FilterPreset.NONE) {
+        // 5. Highlights and Shadows approximation
+        if (state.highlights != 0f || state.shadows != 0f) {
+            val hOffset = state.highlights * 20f
+            val sOffset = state.shadows * 20f
+            val hsMatrix = ColorMatrix(
+                floatArrayOf(
+                    1f, 0f, 0f, 0f, hOffset + sOffset,
+                    0f, 1f, 0f, 0f, hOffset + sOffset,
+                    0f, 0f, 1f, 0f, hOffset + sOffset,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            result.timesAssign(hsMatrix)
+        }
+
+        // 6. Dehaze effect approximation
+        if (state.creative.dehaze > 0f) {
+            val dehaze = state.creative.dehaze
+            val dehazeMatrix = ColorMatrix(
+                floatArrayOf(
+                    1f + dehaze * 0.2f, 0f, 0f, 0f, -dehaze * 15f,
+                    0f, 1f + dehaze * 0.2f, 0f, 0f, -dehaze * 15f,
+                    0f, 0f, 1f + dehaze * 0.2f, 0f, -dehaze * 15f,
+                    0f, 0f, 0f, 1f, 0f
+                )
+            )
+            result.timesAssign(dehazeMatrix)
+        }
+
+        // 7. Preset filters with variable intensity (0% to 100%)
+        if (state.filterPreset != FilterPreset.NONE && state.filterIntensity > 0f) {
             val presetMatrix = getPresetColorMatrix(state.filterPreset)
-            result.timesAssign(presetMatrix)
+            if (state.filterIntensity >= 0.99f) {
+                result.timesAssign(presetMatrix)
+            } else {
+                val interpolated = interpolateColorMatrix(
+                    identity = identityMatrixValues(),
+                    target = presetMatrix.values,
+                    fraction = state.filterIntensity
+                )
+                result.timesAssign(ColorMatrix(interpolated))
+            }
         }
 
+        return result
+    }
+
+    private fun identityMatrixValues(): FloatArray = floatArrayOf(
+        1f, 0f, 0f, 0f, 0f,
+        0f, 1f, 0f, 0f, 0f,
+        0f, 0f, 1f, 0f, 0f,
+        0f, 0f, 0f, 1f, 0f
+    )
+
+    private fun interpolateColorMatrix(identity: FloatArray, target: FloatArray, fraction: Float): FloatArray {
+        val result = FloatArray(20)
+        for (i in 0 until 20) {
+            result[i] = identity[i] + (target[i] - identity[i]) * fraction
+        }
         return result
     }
 

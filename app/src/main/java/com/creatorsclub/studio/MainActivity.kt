@@ -466,40 +466,6 @@ fun HomeDashboardScreen(
                     )
                 }
             }
-
-            // 100% Offline Status Badge Button in Upper-Right Corner of Dashboard Header
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = Color(0xFFE8F5E9),
-                modifier = Modifier.clickable { showOfflineSheet = true }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF2E7D32))
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Offline Mode",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2E7D32)
-                    )
-                }
-            }
-        }
-
-        if (showOfflineSheet) {
-            OfflineStudioSheet(
-                onDismiss = { showOfflineSheet = false },
-                onNavigateToPermissions = onNavigateToPermissions,
-                onNavigateToSettings = onNavigateToSettingsTab
-            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))

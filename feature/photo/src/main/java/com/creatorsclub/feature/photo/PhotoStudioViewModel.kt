@@ -9,15 +9,26 @@ import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Shader
 import android.net.Uri
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.creatorsclub.core.storage.manager.StorageManager
 import com.creatorsclub.engine.image.model.CropAspectRatio
+import com.creatorsclub.engine.image.model.CropTransformState
+import com.creatorsclub.engine.image.model.CurveChannel
+import com.creatorsclub.engine.image.model.CurvePoint
+import com.creatorsclub.engine.image.model.ExportConfig
+import com.creatorsclub.engine.image.model.ExportDimension
+import com.creatorsclub.engine.image.model.ExportFormat
 import com.creatorsclub.engine.image.model.FilterPreset
+import com.creatorsclub.engine.image.model.HslBandAdjustment
+import com.creatorsclub.engine.image.model.HslColorBand
 import com.creatorsclub.engine.image.model.ImageAdjustmentState
 import com.creatorsclub.engine.image.processor.BitmapProcessor
+import com.creatorsclub.engine.image.processor.HistogramProcessor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +37,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Stack
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 @HiltViewModel
 class PhotoStudioViewModel @Inject constructor(
@@ -37,8 +49,10 @@ class PhotoStudioViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(PhotoStudioUiState())
     val uiState: StateFlow<PhotoStudioUiState> = _uiState.asStateFlow()
 
-    private val undoStack = Stack<ImageAdjustmentState>()
-    private val redoStack = Stack<ImageAdjustmentState>()
+    private val undoStack = Stack<Pair<ImageAdjustmentState, CropTransformState>>()
+    private val redoStack = Stack<Pair<ImageAdjustmentState, CropTransformState>>()
+    private var snapshotBeforeTool: Pair<ImageAdjustmentState, CropTransformState>? = null
+    private var histogramJob: Job? = null
 
     fun loadImageFromUri(uri: Uri) {
         viewModelScope.launch {
@@ -53,13 +67,18 @@ class PhotoStudioViewModel @Inject constructor(
                         isLoading = false,
                         sourceBitmap = bitmap,
                         previewThumbnail = thumbnail,
+                        originalWidth = bitmap.width,
+                        originalHeight = bitmap.height,
                         adjustments = ImageAdjustmentState(),
+                        cropTransform = CropTransformState(),
                         canUndo = false,
                         canRedo = false
                     )
                 }
                 undoStack.clear()
                 redoStack.clear()
+                calculateEstimatedFileSize()
+                refreshHistogram(bitmap)
             } else {
                 _uiState.update {
                     it.copy(
@@ -77,13 +96,18 @@ class PhotoStudioViewModel @Inject constructor(
             it.copy(
                 sourceBitmap = bitmap,
                 previewThumbnail = thumbnail,
+                originalWidth = bitmap.width,
+                originalHeight = bitmap.height,
                 adjustments = ImageAdjustmentState(),
+                cropTransform = CropTransformState(),
                 canUndo = false,
                 canRedo = false
             )
         }
         undoStack.clear()
         redoStack.clear()
+        calculateEstimatedFileSize()
+        refreshHistogram(bitmap)
     }
 
     fun loadImageFromBitmap(bitmap: Bitmap) {
@@ -118,7 +142,7 @@ class PhotoStudioViewModel @Inject constructor(
         paint.shader = shader
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
 
-        // Geometric aesthetic circle in center
+        // Center Art
         paint.shader = null
         paint.color = Color.WHITE
         paint.alpha = 40
@@ -131,61 +155,162 @@ class PhotoStudioViewModel @Inject constructor(
         setSourceBitmap(bitmap)
     }
 
-    fun selectTab(tab: PhotoEditorTab) {
-        _uiState.update { it.copy(activeTab = tab) }
+    private fun refreshHistogram(bitmap: Bitmap) {
+        histogramJob?.cancel()
+        histogramJob = viewModelScope.launch {
+            val hist = HistogramProcessor.computeHistogram(bitmap)
+            _uiState.update { it.copy(histogramData = hist) }
+        }
     }
 
-    fun selectAdjustmentTool(tool: ActiveAdjustmentTool) {
-        _uiState.update { it.copy(activeAdjustmentTool = tool) }
+    // --- Navigation & Tool Management ---
+
+    fun selectNavTab(tab: PhotoNavTab) {
+        if (tab == PhotoNavTab.EXPORT) {
+            _uiState.update { it.copy(isExportSheetVisible = true) }
+        } else {
+            _uiState.update { it.copy(navTab = tab, isExportSheetVisible = false, activeTool = ActivePhotoTool.NONE) }
+        }
     }
+
+    fun openTool(tool: ActivePhotoTool) {
+        snapshotBeforeTool = Pair(_uiState.value.adjustments, _uiState.value.cropTransform)
+        _uiState.update { it.copy(activeTool = tool) }
+    }
+
+    fun closeTool(applyChanges: Boolean) {
+        if (!applyChanges && snapshotBeforeTool != null) {
+            val (prevAdj, prevCrop) = snapshotBeforeTool!!
+            _uiState.update {
+                it.copy(
+                    activeTool = ActivePhotoTool.NONE,
+                    adjustments = prevAdj,
+                    cropTransform = prevCrop
+                )
+            }
+        } else {
+            saveStateForUndo()
+            _uiState.update { it.copy(activeTool = ActivePhotoTool.NONE) }
+        }
+        snapshotBeforeTool = null
+    }
+
+    fun selectTuneProperty(prop: ActiveTuneProperty) {
+        _uiState.update { it.copy(activeTuneProperty = prop) }
+    }
+
+    fun selectCurveChannel(channel: CurveChannel) {
+        _uiState.update { it.copy(activeCurveChannel = channel) }
+    }
+
+    fun selectHslBand(band: HslColorBand) {
+        _uiState.update { it.copy(activeHslBand = band) }
+    }
+
+    fun toggleHistogram() {
+        _uiState.update { it.copy(isHistogramVisible = !it.isHistogramVisible) }
+    }
+
+    // --- Filter Presets & Intensity ---
 
     fun applyFilter(preset: FilterPreset) {
         saveStateForUndo()
         _uiState.update {
-            it.copy(adjustments = it.adjustments.copy(filterPreset = preset))
+            it.copy(adjustments = it.adjustments.copy(filterPreset = preset, filterIntensity = 1.0f))
         }
     }
 
-    fun updateBrightness(value: Float) {
+    fun setFilterIntensity(intensity: Float) {
         _uiState.update {
-            it.copy(adjustments = it.adjustments.copy(brightness = value))
+            it.copy(adjustments = it.adjustments.copy(filterIntensity = intensity.coerceIn(0f, 1f)))
         }
     }
 
-    fun updateContrast(value: Float) {
+    // --- Adjustments / Tune Image ---
+
+    fun updateTuneValue(prop: ActiveTuneProperty, value: Float) {
+        val adj = _uiState.value.adjustments
+        val updated = when (prop) {
+            ActiveTuneProperty.BRIGHTNESS -> adj.copy(brightness = value)
+            ActiveTuneProperty.CONTRAST -> adj.copy(contrast = value)
+            ActiveTuneProperty.SATURATION -> adj.copy(saturation = value)
+            ActiveTuneProperty.EXPOSURE -> adj.copy(exposure = value)
+            ActiveTuneProperty.WARMTH -> adj.copy(warmth = value)
+            ActiveTuneProperty.TINT -> adj.copy(tint = value)
+            ActiveTuneProperty.HIGHLIGHTS -> adj.copy(highlights = value)
+            ActiveTuneProperty.SHADOWS -> adj.copy(shadows = value)
+            ActiveTuneProperty.VIGNETTE -> adj.copy(vignette = value)
+        }
+        _uiState.update { it.copy(adjustments = updated) }
+    }
+
+    // --- Curves ---
+
+    fun updateCurvePoints(channel: CurveChannel, points: List<CurvePoint>) {
+        val curves = _uiState.value.adjustments.curves.copyWithPoints(channel, points)
         _uiState.update {
-            it.copy(adjustments = it.adjustments.copy(contrast = value))
+            it.copy(adjustments = it.adjustments.copy(curves = curves))
         }
     }
 
-    fun updateSaturation(value: Float) {
+    fun resetCurveChannel(channel: CurveChannel) {
+        val defaultPoints = listOf(CurvePoint(0f, 0f), CurvePoint(1f, 1f))
+        updateCurvePoints(channel, defaultPoints)
+    }
+
+    // --- HSL Color Mix ---
+
+    fun updateHslBand(band: HslColorBand, hue: Float? = null, saturation: Float? = null, luminance: Float? = null) {
+        val currentMap = _uiState.value.adjustments.hslAdjustments.toMutableMap()
+        val currentAdj = currentMap[band] ?: HslBandAdjustment()
+        val updatedAdj = currentAdj.copy(
+            hue = hue ?: currentAdj.hue,
+            saturation = saturation ?: currentAdj.saturation,
+            luminance = luminance ?: currentAdj.luminance
+        )
+        currentMap[band] = updatedAdj
         _uiState.update {
-            it.copy(adjustments = it.adjustments.copy(saturation = value))
+            it.copy(adjustments = it.adjustments.copy(hslAdjustments = currentMap))
         }
     }
 
-    fun updateExposure(value: Float) {
+    // --- Details & Sharpening ---
+
+    fun updateDetails(sharpening: Float, structure: Float) {
         _uiState.update {
-            it.copy(adjustments = it.adjustments.copy(exposure = value))
+            it.copy(
+                adjustments = it.adjustments.copy(
+                    details = it.adjustments.details.copy(
+                        sharpening = sharpening.coerceIn(0f, 1f),
+                        structure = structure.coerceIn(0f, 1f)
+                    )
+                )
+            )
         }
     }
 
-    fun updateWarmth(value: Float) {
+    // --- Creative Effects ---
+
+    fun updateCreative(dehaze: Float? = null, grain: Float? = null, glow: Float? = null, blurRadius: Float? = null) {
+        val c = _uiState.value.adjustments.creative
+        val updated = c.copy(
+            dehaze = dehaze ?: c.dehaze,
+            grain = grain ?: c.grain,
+            glow = glow ?: c.glow,
+            blurRadius = blurRadius ?: c.blurRadius
+        )
         _uiState.update {
-            it.copy(adjustments = it.adjustments.copy(warmth = value))
+            it.copy(adjustments = it.adjustments.copy(creative = updated))
         }
     }
 
-    fun updateVignette(value: Float) {
-        _uiState.update {
-            it.copy(adjustments = it.adjustments.copy(vignette = value))
-        }
-    }
+    // --- Crop & Transform ---
 
     fun setAspectRatio(ratio: CropAspectRatio) {
         _uiState.update {
             it.copy(cropTransform = it.cropTransform.copy(aspectRatio = ratio))
         }
+        calculateEstimatedFileSize()
     }
 
     fun rotate90() {
@@ -195,37 +320,44 @@ class PhotoStudioViewModel @Inject constructor(
         }
     }
 
+    fun updateStraighten(degrees: Float) {
+        _uiState.update {
+            it.copy(cropTransform = it.cropTransform.copy(straightenDegrees = degrees))
+        }
+    }
+
     fun flipHorizontal() {
         _uiState.update {
             it.copy(cropTransform = it.cropTransform.copy(isFlippedHorizontal = !it.cropTransform.isFlippedHorizontal))
         }
     }
 
+    fun flipVertical() {
+        _uiState.update {
+            it.copy(cropTransform = it.cropTransform.copy(isFlippedVertical = !it.cropTransform.isFlippedVertical))
+        }
+    }
+
+    // --- Compare & Undo/Redo ---
+
     fun setComparingOriginal(isComparing: Boolean) {
         _uiState.update { it.copy(isComparingOriginal = isComparing) }
     }
 
-    fun dismissExportMessage() {
-        _uiState.update { it.copy(exportSuccessUri = null) }
-    }
-
-    fun dismissErrorMessage() {
-        _uiState.update { it.copy(errorMessage = null) }
-    }
-
     private fun saveStateForUndo() {
-        undoStack.push(_uiState.value.adjustments)
+        undoStack.push(Pair(_uiState.value.adjustments, _uiState.value.cropTransform))
         redoStack.clear()
         _uiState.update { it.copy(canUndo = true, canRedo = false) }
     }
 
     fun undo() {
         if (undoStack.isNotEmpty()) {
-            redoStack.push(_uiState.value.adjustments)
-            val previousState = undoStack.pop()
+            redoStack.push(Pair(_uiState.value.adjustments, _uiState.value.cropTransform))
+            val (prevAdj, prevCrop) = undoStack.pop()
             _uiState.update {
                 it.copy(
-                    adjustments = previousState,
+                    adjustments = prevAdj,
+                    cropTransform = prevCrop,
                     canUndo = undoStack.isNotEmpty(),
                     canRedo = true
                 )
@@ -235,11 +367,12 @@ class PhotoStudioViewModel @Inject constructor(
 
     fun redo() {
         if (redoStack.isNotEmpty()) {
-            undoStack.push(_uiState.value.adjustments)
-            val nextState = redoStack.pop()
+            undoStack.push(Pair(_uiState.value.adjustments, _uiState.value.cropTransform))
+            val (nextAdj, nextCrop) = redoStack.pop()
             _uiState.update {
                 it.copy(
-                    adjustments = nextState,
+                    adjustments = nextAdj,
+                    cropTransform = nextCrop,
                     canUndo = true,
                     canRedo = redoStack.isNotEmpty()
                 )
@@ -247,25 +380,104 @@ class PhotoStudioViewModel @Inject constructor(
         }
     }
 
+    // --- Export Sheet & Config ---
+
+    fun showExportSheet() {
+        calculateEstimatedFileSize()
+        _uiState.update { it.copy(isExportSheetVisible = true) }
+    }
+
+    fun hideExportSheet() {
+        _uiState.update { it.copy(isExportSheetVisible = false) }
+    }
+
+    fun updateExportConfig(config: ExportConfig) {
+        _uiState.update { it.copy(exportConfig = config) }
+        calculateEstimatedFileSize()
+    }
+
+    private fun calculateEstimatedFileSize() {
+        val state = _uiState.value
+        val baseW = if (state.originalWidth > 0) state.originalWidth else 1080
+        val baseH = if (state.originalHeight > 0) state.originalHeight else 1080
+
+        val maxDim = state.exportConfig.dimension.maxDimension
+        val (finalW, finalH) = if (maxDim != null) {
+            val scale = maxDim.toFloat() / maxOf(baseW, baseH).toFloat().coerceAtLeast(1f)
+            Pair((baseW * scale).roundToInt(), (baseH * scale).roundToInt())
+        } else {
+            Pair(baseW, baseH)
+        }
+
+        val totalPixels = finalW.toLong() * finalH.toLong()
+        val quality = state.exportConfig.quality.toFloat() / 100f
+
+        val estimatedBytes = when (state.exportConfig.format) {
+            ExportFormat.PNG -> (totalPixels * 1.8).toLong()
+            ExportFormat.WEBP -> (totalPixels * 0.12 * quality).toLong()
+            ExportFormat.JPEG -> (totalPixels * 0.22 * quality).toLong()
+        }
+
+        _uiState.update { it.copy(estimatedFileSizeKb = (estimatedBytes / 1024L).coerceAtLeast(50L)) }
+    }
+
     fun exportImage() {
         val bitmap = _uiState.value.sourceBitmap ?: return
+        val config = _uiState.value.exportConfig
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isExporting = true, isExportSheetVisible = false) }
+
+            // Re-render from source bitmap using full resolution non-destructive pipeline
             val rendered = BitmapProcessor.processAndRender(
                 sourceBitmap = bitmap,
                 adjustmentState = _uiState.value.adjustments,
-                cropTransformState = _uiState.value.cropTransform
+                cropTransformState = _uiState.value.cropTransform,
+                targetDimension = config.dimension
             )
+
+            val compressFormat = when (config.format) {
+                ExportFormat.PNG -> Bitmap.CompressFormat.PNG
+                ExportFormat.WEBP -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    Bitmap.CompressFormat.WEBP_LOSSY
+                } else {
+                    @Suppress("DEPRECATION")
+                    Bitmap.CompressFormat.WEBP
+                }
+                ExportFormat.JPEG -> Bitmap.CompressFormat.JPEG
+            }
+
             val exportResult = storageManager.exportImageToGallery(
                 bitmap = rendered,
-                filename = "Kreavilo_Photo_${System.currentTimeMillis()}"
+                filename = config.filename.ifBlank { "Kreavilo_Photo_${System.currentTimeMillis()}" },
+                format = compressFormat,
+                quality = config.quality
             )
+
             exportResult.onSuccess { uri ->
-                _uiState.update { it.copy(isLoading = false, exportSuccessUri = uri) }
+                _uiState.update {
+                    it.copy(
+                        isExporting = false,
+                        exportSuccessUri = uri
+                    )
+                }
             }.onFailure { error ->
-                _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+                _uiState.update {
+                    it.copy(
+                        isExporting = false,
+                        errorMessage = error.message ?: "Failed to export image"
+                    )
+                }
             }
         }
+    }
+
+    fun dismissExportMessage() {
+        _uiState.update { it.copy(exportSuccessUri = null) }
+    }
+
+    fun dismissErrorMessage() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 
     private suspend fun decodeSampledBitmapFromUri(uri: Uri): Bitmap? = withContext(Dispatchers.IO) {
