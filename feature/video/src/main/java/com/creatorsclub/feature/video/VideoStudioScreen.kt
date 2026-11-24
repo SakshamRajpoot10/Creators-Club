@@ -1,10 +1,14 @@
 package com.creatorsclub.feature.video
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -17,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -33,6 +38,12 @@ fun VideoStudioScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val videoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.addClip(it) }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -42,7 +53,9 @@ fun VideoStudioScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = KreaviloColors.TextPrimary
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -51,8 +64,26 @@ fun VideoStudioScreen(
                     }
                 },
                 actions = {
+                    // Import Video Icon Button
+                    IconButton(onClick = { videoPickerLauncher.launch("video/*") }) {
+                        Icon(
+                            imageVector = Icons.Outlined.VideoCall,
+                            contentDescription = "Import Video Clip",
+                            tint = KreaviloColors.Primary
+                        )
+                    }
+
+                    // Delete Selected Clip
+                    if (uiState.selectedClipId != null) {
+                        IconButton(onClick = { viewModel.deleteSelectedClip() }) {
+                            Icon(Icons.Outlined.Delete, contentDescription = "Delete Clip", tint = KreaviloColors.Error)
+                        }
+                    }
+
+                    // Export Button
                     Button(
                         onClick = { viewModel.exportVideo() },
+                        enabled = uiState.clips.isNotEmpty() && !uiState.isLoading,
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -67,95 +98,115 @@ fun VideoStudioScreen(
             )
         },
         bottomBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(KreaviloColors.Surface)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                // Playback control row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            if (uiState.clips.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(KreaviloColors.Surface)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    IconButton(
-                        onClick = { viewModel.togglePlayPause() },
-                        colors = IconButtonDefaults.iconButtonColors(containerColor = KreaviloColors.PrimaryContainer)
+                    // Playback control row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = if (uiState.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                            contentDescription = "Play/Pause",
-                            tint = KreaviloColors.Primary
-                        )
-                    }
-
-                    Text(
-                        text = "${uiState.totalDurationMs / 1000}s Total Duration",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = KreaviloColors.TextSecondary
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilterChip(
-                            selected = false,
-                            onClick = { viewModel.setClipSpeed(0.5f) },
-                            label = { Text("0.5x", fontSize = 10.sp) }
-                        )
-                        FilterChip(
-                            selected = true,
-                            onClick = { viewModel.setClipSpeed(1.0f) },
-                            label = { Text("1.0x", fontSize = 10.sp) },
-                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KreaviloColors.Primary, selectedLabelColor = Color.White)
-                        )
-                        FilterChip(
-                            selected = false,
-                            onClick = { viewModel.setClipSpeed(2.0f) },
-                            label = { Text("2.0x", fontSize = 10.sp) }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Timeline Clips Track
-                Text("Clips Timeline", fontSize = 11.sp, color = KreaviloColors.TextSecondary)
-                Spacer(modifier = Modifier.height(6.dp))
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(uiState.clips) { clip ->
-                        val isSelected = clip.id == uiState.selectedClipId
-                        Card(
-                            modifier = Modifier
-                                .width(120.dp)
-                                .height(64.dp)
-                                .clickable { viewModel.selectClip(clip.id) },
-                            shape = RoundedCornerShape(8.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) KreaviloColors.PrimaryContainer else KreaviloColors.SurfaceVariant
-                            )
+                        IconButton(
+                            onClick = { viewModel.togglePlayPause() },
+                            colors = IconButtonDefaults.iconButtonColors(containerColor = KreaviloColors.PrimaryContainer)
                         ) {
-                            Column(
+                            Icon(
+                                imageVector = if (uiState.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                contentDescription = "Play/Pause",
+                                tint = KreaviloColors.Primary
+                            )
+                        }
+
+                        Text(
+                            text = "${uiState.totalDurationMs / 1000}s Total Duration",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = KreaviloColors.TextSecondary
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(
+                                selected = false,
+                                onClick = { viewModel.setClipSpeed(0.5f) },
+                                label = { Text("0.5x", fontSize = 10.sp) }
+                            )
+                            FilterChip(
+                                selected = true,
+                                onClick = { viewModel.setClipSpeed(1.0f) },
+                                label = { Text("1.0x", fontSize = 10.sp) },
+                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KreaviloColors.Primary, selectedLabelColor = Color.White)
+                            )
+                            FilterChip(
+                                selected = false,
+                                onClick = { viewModel.setClipSpeed(2.0f) },
+                                label = { Text("2.0x", fontSize = 10.sp) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Timeline Clips Track
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Clips Timeline", fontSize = 11.sp, color = KreaviloColors.TextSecondary, fontWeight = FontWeight.SemiBold)
+                        TextButton(
+                            onClick = { videoPickerLauncher.launch("video/*") },
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = KreaviloColors.Primary)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Add Clip", fontSize = 11.sp, color = KreaviloColors.Primary)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(uiState.clips) { clip ->
+                            val isSelected = clip.id == uiState.selectedClipId
+                            Card(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(8.dp),
-                                verticalArrangement = Arrangement.Center
+                                    .width(120.dp)
+                                    .height(64.dp)
+                                    .clickable { viewModel.selectClip(clip.id) },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected) KreaviloColors.PrimaryContainer else KreaviloColors.SurfaceVariant
+                                )
                             ) {
-                                Text(
-                                    text = clip.name,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) KreaviloColors.Primary else KreaviloColors.TextPrimary
-                                )
-                                Text(
-                                    text = "${clip.durationMs / 1000}s",
-                                    fontSize = 10.sp,
-                                    color = KreaviloColors.TextSecondary
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(8.dp),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = clip.name,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) KreaviloColors.Primary else KreaviloColors.TextPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "${clip.durationMs / 1000}s",
+                                        fontSize = 10.sp,
+                                        color = KreaviloColors.TextSecondary
+                                    )
+                                }
                             }
                         }
                     }
@@ -181,22 +232,99 @@ fun VideoStudioScreen(
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                // Interactive Empty State
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.88f)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.VideoLibrary,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(54.dp)
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "Import video clips to begin editing your reel",
-                        color = Color.LightGray,
-                        fontSize = 13.sp
-                    )
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(KreaviloColors.VideoStudioCardBg),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Videocam,
+                                contentDescription = null,
+                                tint = KreaviloColors.VideoStudioBadge,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Start Video Project",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = KreaviloColors.TextPrimary
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "Import video clips to edit reels, cut scenes, adjust playback speed, and export HD MP4 videos.",
+                            fontSize = 12.sp,
+                            color = KreaviloColors.TextSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            lineHeight = 17.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Button(
+                            onClick = { videoPickerLauncher.launch("video/*") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Outlined.VideoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Import Video Clips from Gallery", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+
+            // Export Success Feedback
+            uiState.exportSuccessFile?.let { file ->
+                Surface(
+                    color = Color(0xFF1B5E20),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 24.dp)
+                        .padding(horizontal = 24.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Video exported successfully (${file.name})!",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { viewModel.dismissExportMessage() },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                    }
                 }
             }
 

@@ -39,7 +39,9 @@ fun ProjectsScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = KreaviloColors.TextPrimary
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = KreaviloColors.Surface)
@@ -51,6 +53,7 @@ fun ProjectsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(KreaviloColors.Background)
+                .navigationBarsPadding()
                 .padding(16.dp)
         ) {
             // Filter Pills (All, Favorites, Trash)

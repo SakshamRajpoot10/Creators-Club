@@ -1,6 +1,9 @@
 package com.creatorsclub.feature.photo
 
 import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +31,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.creatorsclub.core.designsystem.theme.KreaviloColors
@@ -44,6 +48,12 @@ fun PhotoStudioScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.loadImageFromUri(it) }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -53,7 +63,9 @@ fun PhotoStudioScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = KreaviloColors.TextPrimary
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -62,9 +74,18 @@ fun PhotoStudioScreen(
                     }
                 },
                 actions = {
+                    // Import Photo Icon
+                    IconButton(onClick = { photoPickerLauncher.launch("image/*") }) {
+                        Icon(
+                            imageVector = Icons.Outlined.AddPhotoAlternate,
+                            contentDescription = "Import Photo",
+                            tint = KreaviloColors.Primary
+                        )
+                    }
+
                     // Compare button
                     IconButton(
-                        onClick = { /* Tap toggle */ },
+                        onClick = { viewModel.setComparingOriginal(!uiState.isComparingOriginal) },
                         enabled = uiState.sourceBitmap != null
                     ) {
                         Icon(
@@ -101,6 +122,7 @@ fun PhotoStudioScreen(
                     // Export Button
                     Button(
                         onClick = { viewModel.exportImage() },
+                        enabled = uiState.sourceBitmap != null && !uiState.isLoading,
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -115,67 +137,70 @@ fun PhotoStudioScreen(
             )
         },
         bottomBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(KreaviloColors.Surface)
-            ) {
-                // Secondary Controls Area (Sliders / Filter gallery / Crop pills)
-                Box(
+            if (uiState.sourceBitmap != null) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .background(KreaviloColors.Surface)
+                        .navigationBarsPadding()
                 ) {
-                    when (uiState.activeTab) {
-                        PhotoEditorTab.FILTERS -> FilterGalleryRow(
-                            selectedFilter = uiState.adjustments.filterPreset,
-                            onSelectFilter = { viewModel.applyFilter(it) }
+                    // Secondary Controls Area (Sliders / Filter gallery / Crop pills)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    ) {
+                        when (uiState.activeTab) {
+                            PhotoEditorTab.FILTERS -> FilterGalleryRow(
+                                selectedFilter = uiState.adjustments.filterPreset,
+                                onSelectFilter = { viewModel.applyFilter(it) }
+                            )
+                            PhotoEditorTab.ADJUSTMENTS -> AdjustmentSlidersRow(
+                                uiState = uiState,
+                                viewModel = viewModel
+                            )
+                            PhotoEditorTab.CROP -> CropControlsRow(
+                                selectedRatio = uiState.cropTransform.aspectRatio,
+                                onSelectRatio = { viewModel.setAspectRatio(it) },
+                                onRotate = { viewModel.rotate90() },
+                                onFlip = { viewModel.flipHorizontal() }
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = KreaviloColors.Border)
+
+                    // Primary Tool Tabs (Filters, Adjustments, Crop)
+                    TabRow(
+                        selectedTabIndex = uiState.activeTab.ordinal,
+                        containerColor = KreaviloColors.Surface,
+                        contentColor = KreaviloColors.Primary,
+                        indicator = { tabPositions ->
+                            TabRowDefaults.SecondaryIndicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[uiState.activeTab.ordinal]),
+                                color = KreaviloColors.Primary
+                            )
+                        }
+                    ) {
+                        Tab(
+                            selected = uiState.activeTab == PhotoEditorTab.FILTERS,
+                            onClick = { viewModel.selectTab(PhotoEditorTab.FILTERS) },
+                            text = { Text("Filters", fontWeight = FontWeight.SemiBold) },
+                            icon = { Icon(Icons.Outlined.AutoFixHigh, contentDescription = null) }
                         )
-                        PhotoEditorTab.ADJUSTMENTS -> AdjustmentSlidersRow(
-                            uiState = uiState,
-                            viewModel = viewModel
+                        Tab(
+                            selected = uiState.activeTab == PhotoEditorTab.ADJUSTMENTS,
+                            onClick = { viewModel.selectTab(PhotoEditorTab.ADJUSTMENTS) },
+                            text = { Text("Adjust", fontWeight = FontWeight.SemiBold) },
+                            icon = { Icon(Icons.Outlined.Tune, contentDescription = null) }
                         )
-                        PhotoEditorTab.CROP -> CropControlsRow(
-                            selectedRatio = uiState.cropTransform.aspectRatio,
-                            onSelectRatio = { viewModel.setAspectRatio(it) },
-                            onRotate = { viewModel.rotate90() },
-                            onFlip = { viewModel.flipHorizontal() }
+                        Tab(
+                            selected = uiState.activeTab == PhotoEditorTab.CROP,
+                            onClick = { viewModel.selectTab(PhotoEditorTab.CROP) },
+                            text = { Text("Crop & Rotate", fontWeight = FontWeight.SemiBold) },
+                            icon = { Icon(Icons.Outlined.Crop, contentDescription = null) }
                         )
                     }
-                }
-
-                HorizontalDivider(color = KreaviloColors.Border)
-
-                // Primary Tool Tabs (Filters, Adjustments, Crop)
-                TabRow(
-                    selectedTabIndex = uiState.activeTab.ordinal,
-                    containerColor = KreaviloColors.Surface,
-                    contentColor = KreaviloColors.Primary,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[uiState.activeTab.ordinal]),
-                            color = KreaviloColors.Primary
-                        )
-                    }
-                ) {
-                    Tab(
-                        selected = uiState.activeTab == PhotoEditorTab.FILTERS,
-                        onClick = { viewModel.selectTab(PhotoEditorTab.FILTERS) },
-                        text = { Text("Filters", fontWeight = FontWeight.SemiBold) },
-                        icon = { Icon(Icons.Outlined.AutoFixHigh, contentDescription = null) }
-                    )
-                    Tab(
-                        selected = uiState.activeTab == PhotoEditorTab.ADJUSTMENTS,
-                        onClick = { viewModel.selectTab(PhotoEditorTab.ADJUSTMENTS) },
-                        text = { Text("Adjust", fontWeight = FontWeight.SemiBold) },
-                        icon = { Icon(Icons.Outlined.Tune, contentDescription = null) }
-                    )
-                    Tab(
-                        selected = uiState.activeTab == PhotoEditorTab.CROP,
-                        onClick = { viewModel.selectTab(PhotoEditorTab.CROP) },
-                        text = { Text("Crop & Rotate", fontWeight = FontWeight.SemiBold) },
-                        icon = { Icon(Icons.Outlined.Crop, contentDescription = null) }
-                    )
                 }
             }
         }
@@ -229,22 +254,123 @@ fun PhotoStudioScreen(
                     }
                 }
             } else {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                // Interactive Empty State Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.88f)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.AddPhotoAlternate,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Select a photo to begin editing",
-                        color = Color.LightGray,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(KreaviloColors.PhotoStudioCardBg),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.PhotoCamera,
+                                contentDescription = null,
+                                tint = KreaviloColors.PhotoStudioBadge,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Start Editing in Photo Studio",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = KreaviloColors.TextPrimary
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "Import a high-resolution photo from your phone or begin on a blank canvas.",
+                            fontSize = 12.sp,
+                            color = KreaviloColors.TextSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            lineHeight = 17.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Button 1: Import from Gallery
+                        Button(
+                            onClick = { photoPickerLauncher.launch("image/*") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Import Photo from Gallery", fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Button 2: Try Sample Photo
+                        OutlinedButton(
+                            onClick = { viewModel.loadSampleImage() },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Outlined.AutoFixHigh, contentDescription = null, modifier = Modifier.size(18.dp), tint = KreaviloColors.Primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Try Sample Artwork", color = KreaviloColors.Primary, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Button 3: Blank White Canvas (1:1)
+                        TextButton(
+                            onClick = { viewModel.createBlankCanvas() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Create Blank Canvas (1080x1080)", fontSize = 12.sp, color = KreaviloColors.TextSecondary)
+                        }
+                    }
+                }
+            }
+
+            // Export Success Feedback
+            uiState.exportSuccessUri?.let { uri ->
+                Surface(
+                    color = Color(0xFF1B5E20),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 24.dp)
+                        .padding(horizontal = 24.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Photo saved in device Gallery (Lossless)!",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { viewModel.dismissExportMessage() },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
+                    }
                 }
             }
 
@@ -357,6 +483,12 @@ fun AdjustmentSlidersRow(
                 valueRange = -1f..1f,
                 onValueChange = { viewModel.updateWarmth(it) }
             )
+            ActiveAdjustmentTool.VIGNETTE -> SliderWithLabel(
+                label = "Vignette",
+                value = uiState.adjustments.vignette,
+                valueRange = 0f..1f,
+                onValueChange = { viewModel.updateVignette(it) }
+            )
         }
     }
 }
@@ -368,32 +500,24 @@ fun SliderWithLabel(
     valueRange: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = KreaviloColors.TextPrimary,
-            modifier = Modifier.width(80.dp)
-        )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = KreaviloColors.TextPrimary)
+            Text(String.format("%.2f", value), fontSize = 12.sp, color = KreaviloColors.Primary, fontWeight = FontWeight.Bold)
+        }
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
             colors = SliderDefaults.colors(
                 thumbColor = KreaviloColors.Primary,
-                activeTrackColor = KreaviloColors.Primary
-            ),
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = String.format("%.2f", value),
-            fontSize = 11.sp,
-            color = KreaviloColors.TextSecondary,
-            modifier = Modifier.width(42.dp)
+                activeTrackColor = KreaviloColors.Primary,
+                inactiveTrackColor = KreaviloColors.BorderLight
+            )
         )
     }
 }
@@ -406,36 +530,34 @@ fun CropControlsRow(
     onFlip: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
+        // Transform Action Buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Button(
+            OutlinedButton(
                 onClick = onRotate,
-                colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.SurfaceVariant),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Icon(Icons.AutoMirrored.Filled.RotateRight, contentDescription = null, tint = KreaviloColors.TextPrimary, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Rotate 90°", color = KreaviloColors.TextPrimary, fontSize = 12.sp)
+                Icon(Icons.AutoMirrored.Filled.RotateRight, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Rotate 90°", fontSize = 12.sp)
             }
-
-            Button(
+            OutlinedButton(
                 onClick = onFlip,
-                colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.SurfaceVariant),
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Icon(Icons.Default.Flip, contentDescription = null, tint = KreaviloColors.TextPrimary, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Flip H", color = KreaviloColors.TextPrimary, fontSize = 12.sp)
+                Icon(Icons.Outlined.Flip, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Flip Horiz", fontSize = 12.sp)
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
+        // Aspect Ratio Selector Pills
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()

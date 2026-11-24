@@ -46,7 +46,9 @@ fun InteriorStudioScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = KreaviloColors.TextPrimary
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -72,6 +74,7 @@ fun InteriorStudioScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(KreaviloColors.Surface)
+                    .navigationBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text("Add Furniture to 2D Plan", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = KreaviloColors.TextPrimary)

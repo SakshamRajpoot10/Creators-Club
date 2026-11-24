@@ -34,6 +34,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:storage"))
+    implementation(project(":core:database"))
     implementation(project(":core:navigation"))
 
     implementation(libs.androidx.core.ktx)

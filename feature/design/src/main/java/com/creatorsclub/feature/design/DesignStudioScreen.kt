@@ -46,7 +46,9 @@ fun DesignStudioScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = KreaviloColors.TextPrimary
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -89,6 +91,7 @@ fun DesignStudioScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(KreaviloColors.Surface)
+                    .navigationBarsPadding()
             ) {
                 // Secondary Controls Area
                 Box(

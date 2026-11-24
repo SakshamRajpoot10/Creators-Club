@@ -32,6 +32,7 @@ data class DrawingStudioUiState(
     val strokeAlpha: Float = 1f,
     val brushColor: Color = Color(0xFF182033),
     val symmetryMode: SymmetryMode = SymmetryMode.NONE,
+    val isTransparentBackground: Boolean = false,
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
     val exportSuccessUri: Uri? = null,
@@ -99,28 +100,32 @@ class DrawingStudioViewModel @Inject constructor(
         val cy = height / 2f
 
         when (mode) {
-            SymmetryMode.NONE -> return results
+            SymmetryMode.NONE -> { /* Only base stroke */ }
             SymmetryMode.VERTICAL_MIRROR -> {
-                val mirrored = baseStroke.copy(
-                    points = baseStroke.points.map { pt -> DrawingPoint(2 * cx - pt.x, pt.y) }
-                )
-                results.add(mirrored)
+                val mirroredPoints = baseStroke.points.map { pt ->
+                    DrawingPoint(x = 2 * cx - pt.x, y = pt.y)
+                }
+                results.add(baseStroke.copy(points = mirroredPoints))
             }
             SymmetryMode.HORIZONTAL_MIRROR -> {
-                val mirrored = baseStroke.copy(
-                    points = baseStroke.points.map { pt -> DrawingPoint(pt.x, 2 * cy - pt.y) }
-                )
-                results.add(mirrored)
+                val mirroredPoints = baseStroke.points.map { pt ->
+                    DrawingPoint(x = pt.x, y = 2 * cy - pt.y)
+                }
+                results.add(baseStroke.copy(points = mirroredPoints))
             }
             SymmetryMode.RADIAL_MANDALA -> {
-                // 8-fold radial symmetry (Rangoli / Mandala)
-                for (i in 1 until 8) {
-                    val angleRad = (Math.PI * 2 * i / 8.0)
+                // 8-fold radial symmetry
+                val angleStep = (2 * Math.PI / 8).toFloat()
+                for (k in 1 until 8) {
+                    val angle = k * angleStep
+                    val cosA = cos(angle.toDouble()).toFloat()
+                    val sinA = sin(angle.toDouble()).toFloat()
+
                     val rotatedPoints = baseStroke.points.map { pt ->
                         val dx = pt.x - cx
                         val dy = pt.y - cy
-                        val rx = (dx * cos(angleRad) - dy * sin(angleRad)).toFloat() + cx
-                        val ry = (dx * sin(angleRad) + dy * cos(angleRad)).toFloat() + cy
+                        val rx = dx * cosA - dy * sinA + cx
+                        val ry = dx * sinA + dy * cosA + cy
                         DrawingPoint(rx, ry)
                     }
                     results.add(baseStroke.copy(points = rotatedPoints))
@@ -140,16 +145,24 @@ class DrawingStudioViewModel @Inject constructor(
         }
     }
 
-    fun setBrushColor(color: Color) {
-        _uiState.update { it.copy(brushColor = color) }
-    }
-
     fun setStrokeWidth(width: Float) {
         _uiState.update { it.copy(strokeWidth = width) }
     }
 
+    fun setStrokeAlpha(alpha: Float) {
+        _uiState.update { it.copy(strokeAlpha = alpha) }
+    }
+
+    fun setBrushColor(color: Color) {
+        _uiState.update { it.copy(brushColor = color) }
+    }
+
     fun setSymmetryMode(mode: SymmetryMode) {
         _uiState.update { it.copy(symmetryMode = mode) }
+    }
+
+    fun setTransparentBackground(isTransparent: Boolean) {
+        _uiState.update { it.copy(isTransparentBackground = isTransparent) }
     }
 
     fun clearCanvas() {
@@ -188,11 +201,20 @@ class DrawingStudioViewModel @Inject constructor(
         }
     }
 
+    fun dismissExportMessage() {
+        _uiState.update { it.copy(exportSuccessUri = null) }
+    }
+
+    fun dismissErrorMessage() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
     fun exportDrawing() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val strokes = _uiState.value.strokes
-            val bitmap = renderStrokesToBitmap(1080, 1080, strokes)
+            val isTransparent = _uiState.value.isTransparentBackground
+            val bitmap = renderStrokesToBitmap(1080, 1080, strokes, isTransparent)
 
             val result = storageManager.exportImageToGallery(
                 bitmap = bitmap,
@@ -211,11 +233,14 @@ class DrawingStudioViewModel @Inject constructor(
     private suspend fun renderStrokesToBitmap(
         width: Int,
         height: Int,
-        strokes: List<DrawingStroke>
+        strokes: List<DrawingStroke>,
+        isTransparent: Boolean
     ): Bitmap = withContext(Dispatchers.Default) {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        canvas.drawColor(android.graphics.Color.WHITE)
+        if (!isTransparent) {
+            canvas.drawColor(android.graphics.Color.WHITE)
+        }
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE

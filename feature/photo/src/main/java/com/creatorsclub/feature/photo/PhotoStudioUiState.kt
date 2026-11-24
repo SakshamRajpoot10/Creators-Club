@@ -18,7 +18,8 @@ enum class ActiveAdjustmentTool {
     CONTRAST,
     SATURATION,
     EXPOSURE,
-    WARMTH
+    WARMTH,
+    VIGNETTE
 }
 
 data class PhotoStudioUiState(

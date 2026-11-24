@@ -98,7 +98,7 @@ class VideoStudioViewModel @Inject constructor(
 
     fun deleteSelectedClip() {
         val id = _uiState.value.selectedClipId ?: return
-        val updated = _uiState.value.clips.filterNot { it.id == id }
+        val updated = _uiState.value.clips.filter { it.id != id }
         _uiState.update {
             it.copy(
                 clips = updated,
@@ -119,19 +119,14 @@ class VideoStudioViewModel @Inject constructor(
         }
     }
 
+    fun dismissExportMessage() {
+        _uiState.update { it.copy(exportSuccessFile = null) }
+    }
+
     private fun syncPlayerWithClips() {
         player.clearMediaItems()
         for (clip in _uiState.value.clips) {
-            val clippingConfig = MediaItem.ClippingConfiguration.Builder()
-                .setStartPositionMs(clip.startMs)
-                .setEndPositionMs(clip.endMs)
-                .build()
-
-            val item = MediaItem.Builder()
-                .setUri(clip.uri)
-                .setClippingConfiguration(clippingConfig)
-                .build()
-            player.addMediaItem(item)
+            player.addMediaItem(MediaItem.fromUri(clip.uri))
         }
         player.prepare()
     }
@@ -142,21 +137,12 @@ class VideoStudioViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val outputFile = File(
-                storageManager.getProjectsDir(),
-                "Kreavilo_Video_${System.currentTimeMillis()}.mp4"
-            )
-
-            val result = Media3VideoExporter.exportClips(
-                context = getApplication(),
-                clips = clips,
-                outputFile = outputFile
-            )
-
+            val outputFile = File(storageManager.getProjectsDir(), "Kreavilo_Reel_${System.currentTimeMillis()}.mp4")
+            val result = Media3VideoExporter.exportClips(getApplication(), clips, outputFile)
             result.onSuccess { file ->
                 _uiState.update { it.copy(isLoading = false, exportSuccessFile = file) }
-            }.onFailure { error ->
-                _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+            }.onFailure { err ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = err.message) }
             }
         }
     }

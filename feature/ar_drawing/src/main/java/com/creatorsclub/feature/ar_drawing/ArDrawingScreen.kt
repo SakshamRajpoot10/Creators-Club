@@ -1,5 +1,8 @@
 package com.creatorsclub.feature.ar_drawing
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -20,7 +23,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.creatorsclub.core.designsystem.theme.KreaviloColors
@@ -32,7 +37,14 @@ fun ArDrawingScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.loadReferenceFromUri(context, it) }
+    }
 
     Scaffold(
         topBar = {
@@ -43,7 +55,9 @@ fun ArDrawingScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = KreaviloColors.TextPrimary
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -52,6 +66,15 @@ fun ArDrawingScreen(
                     }
                 },
                 actions = {
+                    // Import Reference Image
+                    IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                        Icon(
+                            imageVector = Icons.Outlined.AddPhotoAlternate,
+                            contentDescription = "Import Reference Image",
+                            tint = KreaviloColors.Primary
+                        )
+                    }
+
                     // Lock button to freeze touch so phone can sit above paper
                     IconButton(
                         onClick = { viewModel.toggleScreenLock() },
@@ -70,11 +93,12 @@ fun ArDrawingScreen(
             )
         },
         bottomBar = {
-            if (!uiState.isScreenLocked) {
+            if (!uiState.isScreenLocked && (uiState.sketchOutlineBitmap != null || uiState.referenceBitmap != null)) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(KreaviloColors.Surface)
+                        .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     // Opacity Slider
@@ -100,13 +124,13 @@ fun ArDrawingScreen(
                             text = "${(uiState.overlayOpacity * 100).toInt()}%",
                             fontSize = 11.sp,
                             color = KreaviloColors.TextSecondary,
-                            modifier = Modifier.width(36.dp)
+                            modifier = Modifier.width(40.dp)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Mode toggles
+                    // Controls Row (Edge Filter toggle, Reset)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -115,18 +139,18 @@ fun ArDrawingScreen(
                         FilterChip(
                             selected = uiState.isOutlineMode,
                             onClick = { viewModel.toggleOutlineMode() },
-                            label = { Text("Sketch Outline", fontSize = 11.sp) },
+                            label = { Text("Contour Sketch Mode", fontSize = 11.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = KreaviloColors.Primary,
                                 selectedLabelColor = Color.White
                             )
                         )
 
-                        Text(
-                            text = "Tip: Place phone on cup/stand above paper",
-                            fontSize = 11.sp,
-                            color = KreaviloColors.TextSecondary
-                        )
+                        TextButton(
+                            onClick = { viewModel.updateTransform(1.0f, 0f, 0f, 0f) }
+                        ) {
+                            Text("Reset Scale", fontSize = 11.sp, color = KreaviloColors.Primary)
+                        }
                     }
                 }
             }
@@ -136,12 +160,12 @@ fun ArDrawingScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFF0F172A))
+                .background(Color(0xFF1E222D))
                 .pointerInput(uiState.isScreenLocked) {
                     if (!uiState.isScreenLocked) {
                         detectTransformGestures { _, pan, zoom, rotation ->
                             viewModel.updateTransform(
-                                scale = (uiState.scale * zoom).coerceIn(0.4f, 4.0f),
+                                scale = (uiState.scale * zoom).coerceIn(0.4f, 4f),
                                 offsetX = uiState.offsetX + pan.x,
                                 offsetY = uiState.offsetY + pan.y,
                                 rotation = uiState.rotation + rotation
@@ -151,19 +175,20 @@ fun ArDrawingScreen(
                 },
             contentAlignment = Alignment.Center
         ) {
-            val displayBitmap = if (uiState.isOutlineMode) {
-                uiState.sketchOutlineBitmap ?: uiState.referenceBitmap
+            val bitmapToDraw = if (uiState.isOutlineMode && uiState.sketchOutlineBitmap != null) {
+                uiState.sketchOutlineBitmap
             } else {
                 uiState.referenceBitmap
             }
 
-            if (displayBitmap != null) {
+            if (bitmapToDraw != null) {
                 Image(
-                    bitmap = displayBitmap.asImageBitmap(),
-                    contentDescription = "Tracing Guide Overlay",
+                    bitmap = bitmapToDraw.asImageBitmap(),
+                    contentDescription = "AR Tracing Reference",
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(16.dp)
                         .graphicsLayer {
                             scaleX = uiState.scale
                             scaleY = uiState.scale
@@ -173,44 +198,104 @@ fun ArDrawingScreen(
                             alpha = uiState.overlayOpacity
                         }
                 )
+
+                // Lock instruction pill
+                if (uiState.isScreenLocked) {
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.75f),
+                        shape = RoundedCornerShape(20.dp),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Screen Locked for Paper Tracing", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
             } else {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                // Interactive Empty State Card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth(0.88f)
+                        .wrapContentHeight(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Draw,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(54.dp)
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "Choose any photo or sketch to begin tracing",
-                        color = Color.LightGray,
-                        fontSize = 13.sp
-                    )
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(KreaviloColors.DrawingStudioCardBg),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.CameraAlt,
+                                contentDescription = null,
+                                tint = KreaviloColors.DrawingStudioBadge,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Learn to Draw on Paper",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = KreaviloColors.TextPrimary
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "Import any photo to extract high-contrast outline contours. Prop your phone on a stand or mug above your paper, lock the screen, and trace the lines directly!",
+                            fontSize = 12.sp,
+                            color = KreaviloColors.TextSecondary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            lineHeight = 17.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Button(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Choose Reference Photo", fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        OutlinedButton(
+                            onClick = { viewModel.loadSampleSketch() },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Outlined.AutoFixHigh, contentDescription = null, modifier = Modifier.size(18.dp), tint = KreaviloColors.Primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Try Sample Contour", color = KreaviloColors.Primary, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
             }
 
-            // Locked watermark indicator
-            if (uiState.isScreenLocked) {
-                Surface(
-                    color = Color.Black.copy(alpha = 0.75f),
-                    shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.Yellow, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Screen Locked for Tracing — Tap Lock icon to unlock", color = Color.White, fontSize = 11.sp)
-                    }
-                }
+            if (uiState.isLoading) {
+                CircularProgressIndicator(color = KreaviloColors.Primary)
             }
         }
     }

@@ -39,7 +39,9 @@ fun WritingStudioScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = KreaviloColors.TextPrimary
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -69,7 +71,9 @@ fun WritingStudioScreen(
             Surface(
                 color = KreaviloColors.Surface,
                 tonalElevation = 2.dp,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
             ) {
                 Row(
                     modifier = Modifier
@@ -85,7 +89,7 @@ fun WritingStudioScreen(
                     )
 
                     Text(
-                        text = "Est. Read: String.format(\"%.1f\", ${uiState.estimatedReadingTimeMinutes}) min",
+                        text = "Est. Read: ${String.format("%.1f", uiState.estimatedReadingTimeMinutes)} min",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = KreaviloColors.Primary

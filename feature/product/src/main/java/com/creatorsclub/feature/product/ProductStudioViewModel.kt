@@ -47,6 +47,33 @@ class ProductStudioViewModel @Inject constructor(
         }
     }
 
+    fun loadSampleProduct() {
+        val width = 600
+        val height = 600
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        // Draw stylish product bottle / box
+        paint.color = Color.parseColor("#405BC7")
+        canvas.drawRoundRect(RectF(180f, 160f, 420f, 520f), 24f, 24f, paint)
+
+        paint.color = Color.parseColor("#7664C7")
+        canvas.drawRoundRect(RectF(240f, 100f, 360f, 170f), 12f, 12f, paint)
+
+        paint.color = Color.WHITE
+        paint.alpha = 180
+        canvas.drawRoundRect(RectF(210f, 260f, 390f, 360f), 12f, 12f, paint)
+
+        _uiState.update {
+            it.copy(
+                originalBitmap = bitmap,
+                cutoutBitmap = bitmap,
+                hasRemovedBackground = true
+            )
+        }
+    }
+
     fun removeBackground() {
         val src = _uiState.value.originalBitmap ?: return
         viewModelScope.launch {
@@ -76,6 +103,10 @@ class ProductStudioViewModel @Inject constructor(
 
     fun updateShadowIntensity(intensity: Float) {
         _uiState.update { it.copy(shadowIntensity = intensity) }
+    }
+
+    fun dismissExportMessage() {
+        _uiState.update { it.copy(exportSuccessUri = null) }
     }
 
     fun exportProductImage() {
@@ -111,40 +142,33 @@ class ProductStudioViewModel @Inject constructor(
         }
     }
 
-    /**
-     * High-speed on-device foreground extraction:
-     * Evaluates corner background samples and produces alpha mask for crisp product isolation.
-     */
-    private suspend fun processCutout(source: Bitmap): Bitmap = withContext(Dispatchers.Default) {
-        val width = source.width
-        val height = source.height
-        val output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    private suspend fun processCutout(src: Bitmap): Bitmap = withContext(Dispatchers.Default) {
+        val w = src.width
+        val h = src.height
+        val output = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
 
-        val pixels = IntArray(width * height)
-        source.getPixels(pixels, 0, width, 0, 0, width, height)
+        val pixels = IntArray(w * h)
+        src.getPixels(pixels, 0, w, 0, 0, w, h)
 
-        // Sample corner colors (typical photo background anchors)
-        val topLeft = pixels[0]
-        val topRight = pixels[width - 1]
-        val rAvg = (Color.red(topLeft) + Color.red(topRight)) / 2
-        val gAvg = (Color.green(topLeft) + Color.green(topRight)) / 2
-        val bAvg = (Color.blue(topLeft) + Color.blue(topRight)) / 2
-
-        val threshold = 40
+        val bgSample = pixels[0]
+        val bgR = Color.red(bgSample)
+        val bgG = Color.green(bgSample)
+        val bgB = Color.blue(bgSample)
+        val tolerance = 48
 
         for (i in pixels.indices) {
-            val c = pixels[i]
-            val r = Color.red(c)
-            val g = Color.green(c)
-            val b = Color.blue(c)
+            val p = pixels[i]
+            val r = Color.red(p)
+            val g = Color.green(p)
+            val b = Color.blue(p)
 
-            val diff = kotlin.math.abs(r - rAvg) + kotlin.math.abs(g - gAvg) + kotlin.math.abs(b - bAvg)
-            if (diff < threshold) {
-                pixels[i] = 0 // Transparent
+            val diff = kotlin.math.abs(r - bgR) + kotlin.math.abs(g - bgG) + kotlin.math.abs(b - bgB)
+            if (diff < tolerance) {
+                pixels[i] = Color.TRANSPARENT
             }
         }
 
-        output.setPixels(pixels, 0, width, 0, 0, width, height)
+        output.setPixels(pixels, 0, w, 0, 0, w, h)
         output
     }
 
@@ -160,48 +184,43 @@ class ProductStudioViewModel @Inject constructor(
         val output = Bitmap.createBitmap(outWidth, outHeight, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
 
-        // 1. Draw Backdrop
+        // Draw backdrop
         if (backdrop != StudioBackdrop.TRANSPARENT) {
-            val bgColor = android.graphics.Color.parseColor(backdrop.primaryColorHex)
-            canvas.drawColor(bgColor)
+            val bgPaint = Paint().apply {
+                color = Color.parseColor(backdrop.primaryColorHex)
+            }
+            canvas.drawRect(0f, 0f, outWidth.toFloat(), outHeight.toFloat(), bgPaint)
 
-            // Draw soft pedestal gradient if pedestal mode
+            // Optional podium base
             if (backdrop == StudioBackdrop.CONCRETE_PEDESTAL) {
-                val pedestalPaint = Paint().apply {
-                    color = android.graphics.Color.parseColor("#D1D5DB")
-                    isAntiAlias = true
+                val podiumPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.parseColor("#E5E7EB")
                 }
-                canvas.drawOval(
-                    140f, 750f, 940f, 950f, pedestalPaint
-                )
+                val rect = RectF(190f, 750f, 890f, 860f)
+                canvas.drawOval(rect, podiumPaint)
             }
         }
 
-        // 2. Draw Simulated Contact Drop Shadow
+        // Draw shadow
         if (shadowAlpha > 0f && backdrop != StudioBackdrop.TRANSPARENT) {
-            val shadowPaint = Paint().apply {
-                color = android.graphics.Color.argb((shadowAlpha * 255).roundToInt().coerceIn(0, 255), 30, 35, 50)
-                isAntiAlias = true
-                maskFilter = BlurMaskFilter(45f, BlurMaskFilter.Blur.NORMAL)
+            val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.BLACK
+                alpha = (shadowAlpha * 120).roundToInt().coerceIn(0, 255)
+                maskFilter = BlurMaskFilter(40f, BlurMaskFilter.Blur.NORMAL)
             }
-            val shadowRect = RectF(
-                outWidth * 0.25f,
-                outHeight * 0.72f + offsetY,
-                outWidth * 0.75f,
-                outHeight * 0.82f + offsetY
-            )
+            val shadowY = 740f + offsetY * 2.5f
+            val shadowRect = RectF(290f, shadowY - 40f, 790f, shadowY + 40f)
             canvas.drawOval(shadowRect, shadowPaint)
         }
 
-        // 3. Draw Scaled & Centered Product
-        val prodW = (outWidth * 0.7f * scale).roundToInt()
-        val prodH = (product.height.toFloat() / product.width.toFloat() * prodW).roundToInt()
-        val left = (outWidth - prodW) / 2f
-        val top = ((outHeight - prodH) / 2f) + offsetY
+        // Draw product centered
+        val pw = (product.width * scale * (outWidth / 600f)).toInt()
+        val ph = (product.height * scale * (outHeight / 600f)).toInt()
+        val left = (outWidth - pw) / 2f
+        val top = (outHeight - ph) / 2f + offsetY * 2.5f
 
-        val dstRect = RectF(left, top, left + prodW, top + prodH)
-        val productPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-        canvas.drawBitmap(product, null, dstRect, productPaint)
+        val destRect = RectF(left, top, left + pw, top + ph)
+        canvas.drawBitmap(product, null, destRect, Paint(Paint.FILTER_BITMAP_FLAG))
 
         output
     }
@@ -210,20 +229,8 @@ class ProductStudioViewModel @Inject constructor(
         runCatching {
             val context = getApplication<Application>()
             context.contentResolver.openInputStream(uri)?.use { stream ->
-                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                BitmapFactory.decodeStream(stream, null, options)
-
-                var sampleSize = 1
-                val maxDim = maxOf(options.outWidth, options.outHeight)
-                while (maxDim / sampleSize > 2048) {
-                    sampleSize *= 2
-                }
-
-                context.contentResolver.openInputStream(uri)?.use { second ->
-                    val opts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-                    BitmapFactory.decodeStream(second, null, opts)
-                }
+                BitmapFactory.decodeStream(stream)
             }
-        }.getOrNull()
-    }
+        }
+    }.getOrNull()
 }

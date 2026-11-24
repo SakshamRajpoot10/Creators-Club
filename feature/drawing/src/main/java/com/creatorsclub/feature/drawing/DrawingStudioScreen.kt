@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,6 +44,7 @@ fun DrawingStudioScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var canvasSize by remember { mutableStateOf(IntSize(1, 1)) }
+    var showBrushSettings by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -53,7 +55,9 @@ fun DrawingStudioScreen(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = KreaviloColors.TextPrimary
-                        )
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
@@ -62,20 +66,43 @@ fun DrawingStudioScreen(
                     }
                 },
                 actions = {
+                    // Brush settings toggle
+                    IconButton(onClick = { showBrushSettings = !showBrushSettings }) {
+                        Icon(
+                            imageVector = Icons.Outlined.Tune,
+                            contentDescription = "Brush Size & Opacity",
+                            tint = if (showBrushSettings) KreaviloColors.Primary else KreaviloColors.TextSecondary
+                        )
+                    }
+
+                    // Background Transparency Toggle
+                    IconButton(onClick = { viewModel.setTransparentBackground(!uiState.isTransparentBackground) }) {
+                        Icon(
+                            imageVector = if (uiState.isTransparentBackground) Icons.Filled.GridOn else Icons.Outlined.CropSquare,
+                            contentDescription = "Transparent PNG Mode",
+                            tint = if (uiState.isTransparentBackground) KreaviloColors.Primary else KreaviloColors.TextSecondary
+                        )
+                    }
+
+                    // Clear Canvas
                     IconButton(onClick = { viewModel.clearCanvas() }) {
                         Icon(Icons.Outlined.DeleteSweep, contentDescription = "Clear Canvas", tint = KreaviloColors.Error)
                     }
 
+                    // Undo
                     IconButton(onClick = { viewModel.undo() }, enabled = uiState.canUndo) {
                         Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", tint = if (uiState.canUndo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary)
                     }
 
+                    // Redo
                     IconButton(onClick = { viewModel.redo() }, enabled = uiState.canRedo) {
                         Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", tint = if (uiState.canRedo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary)
                     }
 
+                    // Export
                     Button(
                         onClick = { viewModel.exportDrawing() },
+                        enabled = !uiState.isLoading && uiState.strokes.isNotEmpty(),
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
@@ -94,8 +121,48 @@ fun DrawingStudioScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(KreaviloColors.Surface)
+                    .navigationBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
+                // Brush Size & Opacity Panel (when toggled)
+                if (showBrushSettings) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Brush Size: ${uiState.strokeWidth.toInt()} px", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = KreaviloColors.TextPrimary)
+                            Text("Opacity: ${(uiState.strokeAlpha * 100).toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = KreaviloColors.TextPrimary)
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Slider(
+                                value = uiState.strokeWidth,
+                                onValueChange = { viewModel.setStrokeWidth(it) },
+                                valueRange = 2f..70f,
+                                modifier = Modifier.weight(1f),
+                                colors = SliderDefaults.colors(thumbColor = KreaviloColors.Primary, activeTrackColor = KreaviloColors.Primary)
+                            )
+                            Slider(
+                                value = uiState.strokeAlpha,
+                                onValueChange = { viewModel.setStrokeAlpha(it) },
+                                valueRange = 0.05f..1f,
+                                modifier = Modifier.weight(1f),
+                                colors = SliderDefaults.colors(thumbColor = KreaviloColors.Accent, activeTrackColor = KreaviloColors.Accent)
+                            )
+                        }
+                        HorizontalDivider(color = KreaviloColors.BorderLight, modifier = Modifier.padding(vertical = 4.dp))
+                    }
+                }
+
                 // Symmetry Mode Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -123,7 +190,7 @@ fun DrawingStudioScreen(
                         FilterChip(
                             selected = uiState.symmetryMode == SymmetryMode.RADIAL_MANDALA,
                             onClick = { viewModel.setSymmetryMode(SymmetryMode.RADIAL_MANDALA) },
-                            label = { Text("Mandala", fontSize = 10.sp) },
+                            label = { Text("8x Mandala", fontSize = 10.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = KreaviloColors.Accent,
                                 selectedLabelColor = Color.White
@@ -164,7 +231,10 @@ fun DrawingStudioScreen(
                     Color(0xFFB83C49),
                     Color(0xFFF59E0B),
                     Color(0xFFEC4899),
-                    Color(0xFF06B6D4)
+                    Color(0xFF06B6D4),
+                    Color(0xFF8B5CF6),
+                    Color(0xFFE11D48),
+                    Color(0xFFFFFFFF)
                 )
 
                 LazyRow(
@@ -172,13 +242,28 @@ fun DrawingStudioScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(colors) { color ->
+                        val isSelected = uiState.brushColor == color
                         Box(
                             modifier = Modifier
-                                .size(30.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
                                 .background(color)
                                 .clickable { viewModel.setBrushColor(color) }
-                        )
+                                .then(
+                                    if (isSelected) Modifier.clip(CircleShape)
+                                    else Modifier
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    Icons.Filled.Check,
+                                    contentDescription = null,
+                                    tint = if (color == Color.White) Color.Black else Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -188,7 +273,7 @@ fun DrawingStudioScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color.White)
+                .background(if (uiState.isTransparentBackground) Color(0xFFF0F2F5) else Color.White)
                 .onSizeChanged { canvasSize = it }
                 .pointerInput(Unit) {
                     detectDragGestures(
@@ -244,6 +329,39 @@ fun DrawingStudioScreen(
                                 join = StrokeJoin.Round
                             )
                         )
+                    }
+                }
+            }
+
+            // Export Success Feedback
+            uiState.exportSuccessUri?.let {
+                Surface(
+                    color = Color(0xFF1B5E20),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 24.dp)
+                        .padding(horizontal = 24.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Artwork saved to Gallery (Lossless PNG)!",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { viewModel.dismissExportMessage() },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(16.dp))
+                        }
                     }
                 }
             }

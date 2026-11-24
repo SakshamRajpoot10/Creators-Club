@@ -1,19 +1,23 @@
 package com.creatorsclub.feature.audio
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.creatorsclub.core.storage.manager.StorageManager
 import com.creatorsclub.engine.audio.recorder.AudioRecorder
 import com.creatorsclub.engine.audio.tts.NativeTextToSpeech
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 
 data class AudioStudioUiState(
@@ -41,7 +45,14 @@ class AudioStudioViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             tts.initialize()
+            loadExistingRecordings()
         }
+    }
+
+    private fun loadExistingRecordings() {
+        val dir = storageManager.getProjectsDir()
+        val audioFiles = dir.listFiles { _, name -> name.endsWith(".m4a") || name.endsWith(".wav") || name.endsWith(".mp3") }?.toList() ?: emptyList()
+        _uiState.update { it.copy(savedRecordings = audioFiles) }
     }
 
     fun startRecording() {
@@ -86,6 +97,34 @@ class AudioStudioViewModel @Inject constructor(
         }
     }
 
+    fun importAudioFile(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val context = getApplication<Application>()
+                val fileName = "Imported_Audio_${System.currentTimeMillis()}.mp3"
+                val destFile = File(storageManager.getProjectsDir(), fileName)
+
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(destFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(savedRecordings = it.savedRecordings + destFile) }
+                }
+            }.onFailure { err ->
+                withContext(Dispatchers.Main) {
+                    _uiState.update { it.copy(errorMessage = "Could not import audio: ${err.message}") }
+                }
+            }
+        }
+    }
+
+    fun deleteRecording(file: File) {
+        file.delete()
+        _uiState.update { it.copy(savedRecordings = it.savedRecordings.filter { f -> f.absolutePath != file.absolutePath }) }
+    }
+
     fun updateTtsText(text: String) {
         _uiState.update { it.copy(ttsInputText = text) }
     }
@@ -101,6 +140,10 @@ class AudioStudioViewModel @Inject constructor(
     fun stopTts() {
         tts.stop()
         _uiState.update { it.copy(isSpeakingTts = false) }
+    }
+
+    fun dismissErrorMessage() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 
     override fun onCleared() {

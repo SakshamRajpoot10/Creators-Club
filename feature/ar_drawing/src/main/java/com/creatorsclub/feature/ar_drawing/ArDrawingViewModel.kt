@@ -1,15 +1,22 @@
 package com.creatorsclub.feature.ar_drawing
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class ArDrawingUiState(
@@ -43,6 +50,45 @@ class ArDrawingViewModel @Inject constructor() : ViewModel() {
                 )
             }
         }
+    }
+
+    fun loadReferenceFromUri(context: Context, uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true) }
+            val bmp = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    BitmapFactory.decodeStream(stream)
+                }
+            }.getOrNull()
+
+            if (bmp != null) {
+                withContext(Dispatchers.Main) {
+                    setReferenceImage(bmp)
+                }
+            } else {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    fun loadSampleSketch() {
+        val width = 600
+        val height = 600
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.BLACK
+            style = Paint.Style.STROKE
+            strokeWidth = 6f
+        }
+
+        // Draw an aesthetic butterfly / mandala outline
+        canvas.drawCircle(300f, 300f, 180f, paint)
+        canvas.drawCircle(300f, 300f, 90f, paint)
+        canvas.drawLine(120f, 300f, 480f, 300f, paint)
+        canvas.drawLine(300f, 120f, 300f, 480f, paint)
+
+        setReferenceImage(bitmap)
     }
 
     fun toggleOutlineMode() {

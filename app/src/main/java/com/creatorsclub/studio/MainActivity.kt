@@ -6,13 +6,13 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,8 +35,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.creatorsclub.core.designsystem.theme.KreaviloColors
 import com.creatorsclub.core.designsystem.theme.KreaviloTheme
-import com.creatorsclub.feature.ai_assistant.CreatorAiScreen
-import com.creatorsclub.feature.ai_assistant.CreatorAiViewModel
 import com.creatorsclub.feature.ar_drawing.ArDrawingScreen
 import com.creatorsclub.feature.ar_drawing.ArDrawingViewModel
 import com.creatorsclub.feature.audio.AudioStudioScreen
@@ -52,12 +51,15 @@ import com.creatorsclub.feature.product.ProductStudioScreen
 import com.creatorsclub.feature.product.ProductStudioViewModel
 import com.creatorsclub.feature.projects.ProjectsScreen
 import com.creatorsclub.feature.projects.ProjectsViewModel
+import com.creatorsclub.feature.settings.PermissionsScreen
 import com.creatorsclub.feature.settings.SettingsScreen
 import com.creatorsclub.feature.settings.SettingsViewModel
 import com.creatorsclub.feature.video.VideoStudioScreen
 import com.creatorsclub.feature.video.VideoStudioViewModel
 import com.creatorsclub.feature.writing.WritingStudioScreen
 import com.creatorsclub.feature.writing.WritingStudioViewModel
+import com.creatorsclub.studio.ui.CreateProjectSheet
+import com.creatorsclub.studio.ui.StudiosDirectoryScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -83,14 +85,18 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                NavHost(navController = navController, startDestination = "home") {
-                    // Home Screen
-                    composable("home") {
-                        MainDashboardScreen(
+                NavHost(navController = navController, startDestination = "main_root") {
+                    // Unified Main App Root (Hosts Home, Studios Directory, Projects, Settings)
+                    composable("main_root") {
+                        MainAppScreen(
                             onNavigateToStudio = ::navigateToStudio,
-                            onNavigateToAi = { navController.navigate("creator_ai") },
-                            onNavigateToProjects = { navController.navigate("projects") },
-                            onNavigateToSettings = { navController.navigate("settings") }
+                            onNavigateToPermissions = { navController.navigate("permissions") }
+                        )
+                    }
+
+                    composable("permissions") {
+                        PermissionsScreen(
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 
@@ -174,35 +180,6 @@ class MainActivity : ComponentActivity() {
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
-
-                    // Creator AI Companion
-                    composable("creator_ai") {
-                        val viewModel: CreatorAiViewModel = hiltViewModel()
-                        CreatorAiScreen(
-                            viewModel = viewModel,
-                            onNavigateBack = { navController.popBackStack() },
-                            onNavigateToStudio = ::navigateToStudio
-                        )
-                    }
-
-                    // Projects Library
-                    composable("projects") {
-                        val viewModel: ProjectsViewModel = hiltViewModel()
-                        ProjectsScreen(
-                            viewModel = viewModel,
-                            onOpenProject = { project ->
-                                navigateToStudio(project.studioType)
-                            }
-                        )
-                    }
-
-                    // Settings Screen
-                    composable("settings") {
-                        val viewModel: SettingsViewModel = hiltViewModel()
-                        SettingsScreen(
-                            viewModel = viewModel
-                        )
-                    }
                 }
             }
         }
@@ -217,17 +194,161 @@ data class StudioItem(
     val cardBg: Color
 )
 
+data class QuickToolItem(
+    val title: String,
+    val studioId: String,
+    val initialAction: String,
+    val icon: ImageVector,
+    val color: Color
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainDashboardScreen(
+fun MainAppScreen(
     onNavigateToStudio: (String) -> Unit,
-    onNavigateToAi: () -> Unit,
-    onNavigateToProjects: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToPermissions: () -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showCreateSheet by remember { mutableStateOf(false) }
+
+    val projectsViewModel: ProjectsViewModel = hiltViewModel()
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+
+    Scaffold(
+        containerColor = KreaviloColors.Background,
+        bottomBar = {
+            NavigationBar(
+                containerColor = KreaviloColors.Surface,
+                tonalElevation = 6.dp,
+                modifier = Modifier.navigationBarsPadding()
+            ) {
+                NavigationBarItem(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    icon = { Icon(if (selectedTab == 0) Icons.Filled.Home else Icons.Outlined.Home, contentDescription = "Home") },
+                    label = { Text("Home", fontSize = 11.sp, maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = KreaviloColors.Primary,
+                        selectedTextColor = KreaviloColors.Primary,
+                        indicatorColor = KreaviloColors.PrimaryContainer
+                    )
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    icon = { Icon(if (selectedTab == 1) Icons.Filled.GridView else Icons.Outlined.GridView, contentDescription = "Studios") },
+                    label = { Text("Studios", fontSize = 11.sp, maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = KreaviloColors.Primary,
+                        selectedTextColor = KreaviloColors.Primary,
+                        indicatorColor = KreaviloColors.PrimaryContainer
+                    )
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { showCreateSheet = true },
+                    icon = {
+                        Icon(
+                            Icons.Filled.AddCircle,
+                            contentDescription = "Create",
+                            tint = KreaviloColors.Primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    },
+                    label = { Text("Create", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = KreaviloColors.Primary,
+                        selectedTextColor = KreaviloColors.Primary,
+                        indicatorColor = KreaviloColors.PrimaryContainer
+                    )
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 3,
+                    onClick = { selectedTab = 3 },
+                    icon = { Icon(if (selectedTab == 3) Icons.Filled.Folder else Icons.Outlined.Folder, contentDescription = "Projects") },
+                    label = { Text("Projects", fontSize = 11.sp, maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = KreaviloColors.Primary,
+                        selectedTextColor = KreaviloColors.Primary,
+                        indicatorColor = KreaviloColors.PrimaryContainer
+                    )
+                )
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
+                    icon = { Icon(if (selectedTab == 4) Icons.Filled.Settings else Icons.Outlined.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings", fontSize = 11.sp, maxLines = 1) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = KreaviloColors.Primary,
+                        selectedTextColor = KreaviloColors.Primary,
+                        indicatorColor = KreaviloColors.PrimaryContainer
+                    )
+                )
+            }
+        }
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            when (selectedTab) {
+                0 -> HomeDashboardScreen(
+                    onNavigateToStudio = onNavigateToStudio,
+                    onOpenCreateSheet = { showCreateSheet = true },
+                    onNavigateToStudiosTab = { selectedTab = 1 },
+                    onNavigateToProjectsTab = { selectedTab = 3 }
+                )
+                1 -> StudiosDirectoryScreen(
+                    onNavigateToStudio = onNavigateToStudio
+                )
+                3 -> ProjectsScreen(
+                    viewModel = projectsViewModel,
+                    onOpenProject = { project -> onNavigateToStudio(project.studioType) }
+                )
+                4 -> SettingsScreen(
+                    viewModel = settingsViewModel,
+                    onNavigateToPermissions = onNavigateToPermissions
+                )
+            }
+
+            if (showCreateSheet) {
+                CreateProjectSheet(
+                    onDismiss = { showCreateSheet = false },
+                    onSelectStudio = { studioId, _ ->
+                        showCreateSheet = false
+                        onNavigateToStudio(studioId)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeDashboardScreen(
+    onNavigateToStudio: (String) -> Unit,
+    onOpenCreateSheet: () -> Unit,
+    onNavigateToStudiosTab: () -> Unit,
+    onNavigateToProjectsTab: () -> Unit
+) {
     var searchQuery by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
+
+    val quickTools = remember {
+        listOf(
+            QuickToolItem("Edit Photo", "photo", "Import Photo", Icons.Outlined.PhotoCamera, KreaviloColors.PhotoStudioBadge),
+            QuickToolItem("Remove BG", "product", "Import Product Photo", Icons.Outlined.AutoFixHigh, KreaviloColors.ProductStudioBadge),
+            QuickToolItem("Create Poster", "design", "Choose Template", Icons.Outlined.DesignServices, KreaviloColors.DesignStudioBadge),
+            QuickToolItem("Start Drawing", "drawing", "Blank Sketchbook", Icons.Outlined.Draw, KreaviloColors.DrawingStudioBadge),
+            QuickToolItem("Record Voice", "audio", "Record Voiceover", Icons.Outlined.Mic, KreaviloColors.AudioStudioBadge),
+            QuickToolItem("Video Reel", "video", "New Timeline", Icons.Outlined.MovieFilter, KreaviloColors.VideoStudioBadge),
+            QuickToolItem("AR Tracing", "ar_drawing", "Camera Tracing", Icons.Outlined.CameraAlt, KreaviloColors.DrawingStudioBadge),
+            QuickToolItem("Teleprompter", "writing", "Video Teleprompter", Icons.Outlined.Subtitles, KreaviloColors.WritingStudioBadge),
+            QuickToolItem("2D Floorplan", "interior", "2D Floorplan", Icons.Outlined.MeetingRoom, KreaviloColors.InteriorStudioBadge)
+        )
+    }
 
     val studios = remember {
         listOf(
@@ -248,350 +369,284 @@ fun MainDashboardScreen(
         else studios.filter { it.name.contains(searchQuery, ignoreCase = true) }
     }
 
-    Scaffold(
-        containerColor = KreaviloColors.Background,
-        bottomBar = {
-            NavigationBar(
-                containerColor = KreaviloColors.Surface,
-                tonalElevation = 4.dp
-            ) {
-                NavigationBarItem(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    icon = { Icon(if (selectedTab == 0) Icons.Filled.Home else Icons.Outlined.Home, contentDescription = "Home") },
-                    label = { Text("Home", fontSize = 11.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = KreaviloColors.Primary,
-                        selectedTextColor = KreaviloColors.Primary,
-                        indicatorColor = KreaviloColors.PrimaryContainer
-                    )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        // Top App Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    painter = painterResource(id = R.drawable.creators_club_icon),
+                    contentDescription = "Creators Club Logo",
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
                 )
-                NavigationBarItem(
-                    selected = selectedTab == 1,
-                    onClick = {
-                        selectedTab = 1
-                    },
-                    icon = { Icon(if (selectedTab == 1) Icons.Filled.GridView else Icons.Outlined.GridView, contentDescription = "Studios") },
-                    label = { Text("Studios", fontSize = 11.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = KreaviloColors.Primary,
-                        selectedTextColor = KreaviloColors.Primary,
-                        indicatorColor = KreaviloColors.PrimaryContainer
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Creators Club",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = KreaviloColors.TextPrimary,
+                            fontSize = 20.sp
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = {
-                        selectedTab = 2
-                        onNavigateToStudio("photo")
-                    },
-                    icon = { Icon(Icons.Filled.AddCircle, contentDescription = "Create", tint = KreaviloColors.Primary, modifier = Modifier.size(28.dp)) },
-                    label = { Text("Create", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = KreaviloColors.Primary,
-                        selectedTextColor = KreaviloColors.Primary,
-                        indicatorColor = KreaviloColors.PrimaryContainer
+                    Text(
+                        text = "Create without limits",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = KreaviloColors.TextSecondary,
+                            fontSize = 11.sp
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = {
-                        selectedTab = 3
-                        onNavigateToProjects()
-                    },
-                    icon = { Icon(if (selectedTab == 3) Icons.Filled.Folder else Icons.Outlined.Folder, contentDescription = "Projects") },
-                    label = { Text("Projects", fontSize = 11.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = KreaviloColors.Primary,
-                        selectedTextColor = KreaviloColors.Primary,
-                        indicatorColor = KreaviloColors.PrimaryContainer
-                    )
-                )
-                NavigationBarItem(
-                    selected = selectedTab == 4,
-                    onClick = {
-                        selectedTab = 4
-                        onNavigateToSettings()
-                    },
-                    icon = { Icon(if (selectedTab == 4) Icons.Filled.Settings else Icons.Outlined.Settings, contentDescription = "Settings") },
-                    label = { Text("Settings", fontSize = 11.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = KreaviloColors.Primary,
-                        selectedTextColor = KreaviloColors.Primary,
-                        indicatorColor = KreaviloColors.PrimaryContainer
-                    )
+                }
+            }
+
+            IconButton(onClick = onNavigateToProjectsTab) {
+                Icon(
+                    imageVector = Icons.Outlined.FolderOpen,
+                    contentDescription = "Projects & Assets",
+                    tint = KreaviloColors.Primary
                 )
             }
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(scrollState)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Hero Greeting Card with Landscape Banner
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            // Top Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.creators_club_icon),
-                        contentDescription = "Creators Club Logo",
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = "Creators Club",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = KreaviloColors.TextPrimary,
-                                fontSize = 20.sp
-                            )
-                        )
-                        Text(
-                            text = "Create without limits",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = KreaviloColors.TextSecondary,
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-                }
-
-                IconButton(onClick = onNavigateToAi) {
-                    Icon(
-                        imageVector = Icons.Filled.AutoAwesome,
-                        contentDescription = "AI Assistant",
-                        tint = KreaviloColors.Accent
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Hero Greeting Card with Landscape Banner
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column {
-                    Image(
-                        painter = painterResource(id = R.drawable.promo_landscape_banner),
-                        contentDescription = "Creators Club Studio Banner",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp)
-                            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "What will you create today?",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontSize = 19.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = KreaviloColors.TextPrimary
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Your imagination starts here. Select any studio or ask Creator AI.",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = KreaviloColors.TextSecondary,
-                                fontSize = 12.sp
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { onNavigateToStudio("photo") },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("+ Create project", fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Search Bar
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Find any creative tool or studio", color = KreaviloColors.TextTertiary, fontSize = 14.sp) },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Search, contentDescription = "Search", tint = KreaviloColors.TextSecondary)
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = KreaviloColors.TextSecondary)
-                        }
-                    }
-                },
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = KreaviloColors.Surface,
-                    unfocusedContainerColor = KreaviloColors.Surface,
-                    focusedBorderColor = KreaviloColors.Primary,
-                    unfocusedBorderColor = KreaviloColors.Border
-                ),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Studios Section Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Your creative studios",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = KreaviloColors.TextPrimary
-                    )
-                )
-                Text(
-                    text = "${filteredStudios.size} studios",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = KreaviloColors.TextTertiary
-                    )
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Studios Grid
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                filteredStudios.chunked(2).forEach { rowStudios ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        rowStudios.forEach { studio ->
-                            Card(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(88.dp)
-                                    .clickable { onNavigateToStudio(studio.id) },
-                                shape = RoundedCornerShape(14.dp),
-                                colors = CardDefaults.cardColors(containerColor = studio.cardBg)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(12.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        imageVector = studio.icon,
-                                        contentDescription = studio.name,
-                                        tint = studio.badgeColor,
-                                        modifier = Modifier.size(26.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = studio.name,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = KreaviloColors.TextPrimary,
-                                            fontSize = 13.sp
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                        if (rowStudios.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Creator AI Companion Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onNavigateToAi() },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface),
-                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(KreaviloColors.Border))
-            ) {
-                Row(
+            Column {
+                Image(
+                    painter = painterResource(id = R.drawable.promo_landscape_banner),
+                    contentDescription = "Creators Club Studio Banner",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .height(130.dp)
+                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "What will you create today?",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = KreaviloColors.TextPrimary
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Choose a studio and bring your ideas to life.",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = KreaviloColors.TextSecondary,
+                            fontSize = 12.sp
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Button(
+                        onClick = onOpenCreateSheet,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("+ Create project", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Quick Creative Tools Section
+        Text(
+            text = "Quick Creative Tools",
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = KreaviloColors.TextPrimary
+            )
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            quickTools.forEach { tool ->
+                Card(
+                    modifier = Modifier
+                        .width(108.dp)
+                        .clickable { onNavigateToStudio(tool.studioId) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface),
+                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(KreaviloColors.Border))
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = R.drawable.creator_ai_mascot),
-                            contentDescription = "Creator AI",
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
                             modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Creator AI",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = KreaviloColors.TextPrimary
-                                )
-                            )
-                            Text(
-                                text = "Ask me anything in English or Hindi",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = KreaviloColors.TextSecondary,
-                                    fontSize = 12.sp
-                                )
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(tool.color.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = tool.icon,
+                                contentDescription = tool.title,
+                                tint = tool.color,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
-                    }
-
-                    IconButton(
-                        onClick = onNavigateToAi,
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(KreaviloColors.PrimaryContainer)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Mic,
-                            contentDescription = "Voice Input",
-                            tint = KreaviloColors.Primary,
-                            modifier = Modifier.size(20.dp)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = tool.title,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = KreaviloColors.TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Search Bar
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Find any creative tool or studio", color = KreaviloColors.TextTertiary, fontSize = 14.sp) },
+            leadingIcon = {
+                Icon(Icons.Outlined.Search, contentDescription = "Search", tint = KreaviloColors.TextSecondary)
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = KreaviloColors.TextSecondary)
+                    }
+                }
+            },
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = KreaviloColors.Surface,
+                unfocusedContainerColor = KreaviloColors.Surface,
+                focusedBorderColor = KreaviloColors.Primary,
+                unfocusedBorderColor = KreaviloColors.Border
+            ),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Studios Section Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Your creative studios",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = KreaviloColors.TextPrimary
+                )
+            )
+            TextButton(onClick = onNavigateToStudiosTab) {
+                Text(
+                    text = "See all (${filteredStudios.size})",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = KreaviloColors.Primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Studios Grid
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            filteredStudios.chunked(2).forEach { rowStudios ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    rowStudios.forEach { studio ->
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(88.dp)
+                                .clickable { onNavigateToStudio(studio.id) },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = studio.cardBg)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(12.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = studio.icon,
+                                    contentDescription = studio.name,
+                                    tint = studio.badgeColor,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = studio.name,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = KreaviloColors.TextPrimary,
+                                        fontSize = 13.sp
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+                    if (rowStudios.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }

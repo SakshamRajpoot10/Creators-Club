@@ -3,6 +3,11 @@ package com.creatorsclub.feature.photo
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Shader
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -75,6 +80,47 @@ class PhotoStudioViewModel @Inject constructor(
         redoStack.clear()
     }
 
+    fun createBlankCanvas(width: Int = 1080, height: Int = 1080, color: Int = Color.WHITE) {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(color)
+        setSourceBitmap(bitmap)
+    }
+
+    fun loadSampleImage() {
+        val width = 1080
+        val height = 1080
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint().apply { isAntiAlias = true }
+
+        // Gradient Background
+        val shader = LinearGradient(
+            0f, 0f, width.toFloat(), height.toFloat(),
+            intArrayOf(
+                Color.parseColor("#405BC7"),
+                Color.parseColor("#7664C7"),
+                Color.parseColor("#EC4899")
+            ),
+            null,
+            Shader.TileMode.CLAMP
+        )
+        paint.shader = shader
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+
+        // Geometric aesthetic circle in center
+        paint.shader = null
+        paint.color = Color.WHITE
+        paint.alpha = 40
+        canvas.drawCircle(width / 2f, height / 2f, 320f, paint)
+
+        paint.color = Color.WHITE
+        paint.alpha = 70
+        canvas.drawCircle(width / 2f, height / 2f, 180f, paint)
+
+        setSourceBitmap(bitmap)
+    }
+
     fun selectTab(tab: PhotoEditorTab) {
         _uiState.update { it.copy(activeTab = tab) }
     }
@@ -120,6 +166,12 @@ class PhotoStudioViewModel @Inject constructor(
         }
     }
 
+    fun updateVignette(value: Float) {
+        _uiState.update {
+            it.copy(adjustments = it.adjustments.copy(vignette = value))
+        }
+    }
+
     fun setAspectRatio(ratio: CropAspectRatio) {
         _uiState.update {
             it.copy(cropTransform = it.cropTransform.copy(aspectRatio = ratio))
@@ -141,6 +193,14 @@ class PhotoStudioViewModel @Inject constructor(
 
     fun setComparingOriginal(isComparing: Boolean) {
         _uiState.update { it.copy(isComparingOriginal = isComparing) }
+    }
+
+    fun dismissExportMessage() {
+        _uiState.update { it.copy(exportSuccessUri = null) }
+    }
+
+    fun dismissErrorMessage() {
+        _uiState.update { it.copy(errorMessage = null) }
     }
 
     private fun saveStateForUndo() {
@@ -202,11 +262,9 @@ class PhotoStudioViewModel @Inject constructor(
         runCatching {
             val context = getApplication<Application>()
             context.contentResolver.openInputStream(uri)?.use { stream ->
-                // First decode bounds
                 val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeStream(stream, null, options)
 
-                // Downsample if mega-resolution (>4000px) to prevent OOM
                 val maxDim = maxOf(options.outWidth, options.outHeight)
                 var sampleSize = 1
                 while (maxDim / sampleSize > 3840) {
