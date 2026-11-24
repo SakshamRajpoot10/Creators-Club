@@ -188,8 +188,8 @@ fun BannerStudioScreen(
                         elements = uiState.elements,
                         selectedElementId = uiState.selectedElementId,
                         backgroundColor = uiState.backgroundColor,
-                        canvasWidthDp = previewWidthDp,
-                        canvasHeightDp = previewHeightDp,
+                        documentWidth = uiState.activePreset.width,
+                        documentHeight = uiState.activePreset.height,
                         onSelectElement = { viewModel.selectElement(it) },
                         onUpdateElementTransform = { id, x, y -> viewModel.updateElementPosition(id, x, y) },
                         modifier = Modifier.fillMaxSize()

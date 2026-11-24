@@ -7,8 +7,10 @@ enum class TemplateCategory(val displayName: String) {
     INSTAGRAM_POST("Instagram Post (1:1)"),
     INSTAGRAM_STORY("Instagram Story (9:16)"),
     YOUTUBE_THUMBNAIL("YouTube Thumbnail (16:9)"),
+    YOUTUBE_BANNER("YouTube Banner (16:9)"),
     SALE_BANNER("Sale & Offer Banner"),
-    BUSINESS_FLYER("Flyer / Poster")
+    BUSINESS_FLYER("Flyer / Poster"),
+    PODCAST_COVER("Podcast Cover (1:1)")
 }
 
 @Serializable

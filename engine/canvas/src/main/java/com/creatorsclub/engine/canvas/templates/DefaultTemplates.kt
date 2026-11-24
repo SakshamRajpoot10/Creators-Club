@@ -38,9 +38,9 @@ object DefaultTemplates {
                 TemplateShapeSpec("shape_badge", "ROUNDED_RECTANGLE", 100f, 420f, 360f, 90f, "#B83C49", 16f)
             ),
             rawTextElements = listOf(
-                TemplateTextSpec("txt_headline", "DON'T BUY THIS!", 120f, 220f, 58f, "#FFFFFF", isBold = true),
-                TemplateTextSpec("txt_sub", "HONEST REVIEW 2026", 120f, 320f, 36f, "#E4E9FA", isBold = true),
-                TemplateTextSpec("txt_badge", "WATCH BEFORE BUYING", 280f, 470f, 20f, "#FFFFFF", isBold = true)
+                TemplateTextSpec("txt_headline", "DON'T BUY THIS!", 640f, 220f, 58f, "#FFFFFF", isBold = true),
+                TemplateTextSpec("txt_sub", "HONEST REVIEW 2026", 640f, 320f, 36f, "#E4E9FA", isBold = true),
+                TemplateTextSpec("txt_badge", "WATCH BEFORE BUYING", 280f, 465f, 20f, "#FFFFFF", isBold = true)
             )
         ),
         DesignTemplate(
@@ -57,7 +57,7 @@ object DefaultTemplates {
             rawTextElements = listOf(
                 TemplateTextSpec("txt_quote", "Start your morning with focus & creative energy.", 540f, 650f, 32f, "#182033", isBold = false, isItalic = true),
                 TemplateTextSpec("txt_brand", "KREAVILO STUDIO", 540f, 850f, 22f, "#405BC7", isBold = true),
-                TemplateTextSpec("txt_cta", "CREATE TODAY", 540f, 1250f, 22f, "#FFFFFF", isBold = true)
+                TemplateTextSpec("txt_cta", "CREATE TODAY", 540f, 1245f, 22f, "#FFFFFF", isBold = true)
             )
         ),
         DesignTemplate(
@@ -74,10 +74,45 @@ object DefaultTemplates {
             rawTextElements = listOf(
                 TemplateTextSpec("txt_hdr", "SCALE YOUR BUSINESS", 540f, 180f, 44f, "#FFFFFF", isBold = true),
                 TemplateTextSpec("txt_subhdr", "Digital Marketing & Design Services", 540f, 260f, 22f, "#E4E9FA"),
-                TemplateTextSpec("txt_point1", "✔ Professional Social Media Ad Creatives", 140f, 560f, 26f, "#182033", isBold = true),
-                TemplateTextSpec("txt_point2", "✔ 4K Video Ads & Reel Editing", 140f, 680f, 26f, "#182033", isBold = true),
-                TemplateTextSpec("txt_point3", "✔ Product Cutouts & E-Commerce Catalogs", 140f, 800f, 26f, "#182033", isBold = true),
+                TemplateTextSpec("txt_point1", "✔ Professional Social Media Ad Creatives", 540f, 560f, 26f, "#182033", isBold = true),
+                TemplateTextSpec("txt_point2", "✔ 4K Video Ads & Reel Editing", 540f, 680f, 26f, "#182033", isBold = true),
+                TemplateTextSpec("txt_point3", "✔ Product Cutouts & E-Commerce Catalogs", 540f, 800f, 26f, "#182033", isBold = true),
                 TemplateTextSpec("txt_contact", "Call / WhatsApp: +91 98765 43210", 540f, 1150f, 28f, "#405BC7", isBold = true)
+            )
+        ),
+        DesignTemplate(
+            templateId = "tmpl_youtube_banner",
+            title = "Creator Channel Header Banner",
+            category = TemplateCategory.YOUTUBE_BANNER,
+            canvasWidth = 2560,
+            canvasHeight = 1440,
+            backgroundColorHex = "#12141C",
+            rawShapeElements = listOf(
+                TemplateShapeSpec("shape_safe_area", "ROUNDED_RECTANGLE", 510f, 500f, 1540f, 440f, "#1C2030", 24f),
+                TemplateShapeSpec("shape_pill", "ROUNDED_RECTANGLE", 1080f, 790f, 400f, 90f, "#E11D48", 45f)
+            ),
+            rawTextElements = listOf(
+                TemplateTextSpec("txt_title", "CREATORS CLUB", 1280f, 620f, 68f, "#FFFFFF", isBold = true),
+                TemplateTextSpec("txt_sub", "NEW EPISODES EVERY TUESDAY & FRIDAY", 1280f, 720f, 26f, "#94A3B8", isBold = true),
+                TemplateTextSpec("txt_cta", "SUBSCRIBE", 1280f, 835f, 24f, "#FFFFFF", isBold = true)
+            )
+        ),
+        DesignTemplate(
+            templateId = "tmpl_podcast_cover",
+            title = "The Deep Work Mindset Podcast",
+            category = TemplateCategory.PODCAST_COVER,
+            canvasWidth = 1400,
+            canvasHeight = 1400,
+            backgroundColorHex = "#0F172A",
+            rawShapeElements = listOf(
+                TemplateShapeSpec("shape_frame", "ROUNDED_RECTANGLE", 100f, 100f, 1200f, 1200f, "#1E293B", 40f),
+                TemplateShapeSpec("shape_tag", "ROUNDED_RECTANGLE", 450f, 320f, 500f, 100f, "#F59E0B", 50f)
+            ),
+            rawTextElements = listOf(
+                TemplateTextSpec("txt_tag", "SEASON 03 • EPISODE 12", 700f, 370f, 26f, "#0F172A", isBold = true),
+                TemplateTextSpec("txt_main", "THE ART OF DISCIPLINE", 700f, 620f, 54f, "#FFFFFF", isBold = true),
+                TemplateTextSpec("txt_sub", "Building Habits That Stick Forever", 700f, 730f, 30f, "#94A3B8"),
+                TemplateTextSpec("txt_host", "HOSTED BY SAKSHAM RAJPOOT", 700f, 1050f, 26f, "#38BDF8", isBold = true)
             )
         )
     )

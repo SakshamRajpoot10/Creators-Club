@@ -322,12 +322,30 @@ fun PhotoStudioScreen(
                     }
                 }
             } else {
-                // Empty State
-                PhotoStudioEmptyState(
-                    onImport = { photoPickerLauncher.launch("image/*") },
-                    onSample = { viewModel.loadSampleImage() },
-                    onBlank = { viewModel.createBlankCanvas() }
-                )
+                // Centered Empty / Source Selection State
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    PhotoStudioEmptyState(
+                        onImport = { photoPickerLauncher.launch("image/*") },
+                        onCamera = {
+                            val hasCamera = androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.CAMERA
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            if (hasCamera) {
+                                takePictureLauncher.launch(null)
+                            } else {
+                                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                            }
+                        },
+                        onSample = { viewModel.loadSampleImage() },
+                        onBlank = { viewModel.createBlankCanvas() }
+                    )
+                }
             }
         }
     }
@@ -452,7 +470,9 @@ fun AdaptivePhotoHeader(
     Surface(
         color = KreaviloColors.Surface,
         shadowElevation = 2.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
     ) {
         if (isNarrowScreen) {
             // 2-Row Adaptive Layout for <=360dp devices to guarantee 48dp targets
@@ -1726,15 +1746,20 @@ fun ExportStudioSheet(
 @Composable
 fun PhotoStudioEmptyState(
     onImport: () -> Unit,
+    onCamera: () -> Unit,
     onSample: () -> Unit,
     onBlank: () -> Unit
 ) {
     Card(
         modifier = Modifier
-            .fillMaxWidth(0.88f)
+            .fillMaxWidth(0.92f)
             .wrapContentHeight(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = KreaviloColors.Surface),
+        border = CardDefaults.outlinedCardBorder().copy(
+            brush = androidx.compose.ui.graphics.SolidColor(KreaviloColors.BorderLight)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier.padding(24.dp),
@@ -1743,7 +1768,7 @@ fun PhotoStudioEmptyState(
         ) {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(68.dp)
                     .clip(CircleShape)
                     .background(KreaviloColors.PhotoStudioCardBg),
                 contentAlignment = Alignment.Center
@@ -1752,23 +1777,32 @@ fun PhotoStudioEmptyState(
                     imageVector = Icons.Outlined.PhotoCamera,
                     contentDescription = null,
                     tint = KreaviloColors.PhotoStudioBadge,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(34.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Professional Photo Studio",
-                fontSize = 17.sp,
+                text = "Photo Studio",
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = KreaviloColors.TextPrimary
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Create a photo project",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = KreaviloColors.Primary
             )
 
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Full-resolution non-destructive image editing with 34 looks, curves, HSL, and direct gallery export.",
+                text = "Edit a photo with professional, non-destructive tools.",
                 fontSize = 12.sp,
                 color = KreaviloColors.TextSecondary,
                 textAlign = TextAlign.Center,
@@ -1777,23 +1811,44 @@ fun PhotoStudioEmptyState(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // 1. Import from Gallery
             Button(
                 onClick = onImport,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
                 Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Import Photo from Gallery", fontWeight = FontWeight.SemiBold)
+                Text("Import from Gallery", fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // 2. Capture with Camera
+            OutlinedButton(
+                onClick = onCamera,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(Icons.Outlined.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp), tint = KreaviloColors.Primary)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Capture with Camera", color = KreaviloColors.Primary, fontWeight = FontWeight.SemiBold)
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 3. Try Sample Artwork
             OutlinedButton(
                 onClick = onSample,
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
                 Icon(Icons.Outlined.AutoFixHigh, contentDescription = null, modifier = Modifier.size(18.dp), tint = KreaviloColors.Primary)
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1802,11 +1857,14 @@ fun PhotoStudioEmptyState(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // 4. Create Blank Canvas
             TextButton(
                 onClick = onBlank,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp)
             ) {
-                Text("Create Blank Canvas (1080×1080)", fontSize = 12.sp, color = KreaviloColors.TextSecondary)
+                Text("Create Blank Canvas", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = KreaviloColors.TextSecondary)
             }
         }
     }

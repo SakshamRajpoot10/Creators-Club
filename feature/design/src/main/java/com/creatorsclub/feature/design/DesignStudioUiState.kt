@@ -26,6 +26,11 @@ data class DesignStudioUiState(
     val importedStickers: List<File> = emptyList(),
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
+    val isFavorite: Boolean = false,
+    val projectId: String? = null,
+    val isProjectTrashed: Boolean = false,
+    val showTrashConfirmDialog: Boolean = false,
+    val editingTextElement: com.creatorsclub.engine.canvas.model.TextElement? = null,
     val exportSuccessUri: Uri? = null,
     val errorMessage: String? = null
 )

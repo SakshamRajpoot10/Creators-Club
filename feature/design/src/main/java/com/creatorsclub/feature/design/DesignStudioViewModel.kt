@@ -6,6 +6,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.creatorsclub.core.database.KreaviloDatabase
+import com.creatorsclub.core.database.model.ProjectEntity
 import com.creatorsclub.core.storage.manager.StorageManager
 import com.creatorsclub.engine.canvas.model.CanvasElement
 import com.creatorsclub.engine.canvas.model.DesignTemplate
@@ -15,6 +17,7 @@ import com.creatorsclub.engine.canvas.model.TextElement
 import com.creatorsclub.engine.canvas.renderer.DesignCanvasRenderer
 import com.creatorsclub.engine.canvas.templates.DefaultTemplates
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +33,8 @@ class DesignStudioViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
     private val storageManager = StorageManager(application)
+    private val db = KreaviloDatabase.getInstance(application)
+    private val projectDao = db.projectDao()
 
     private val _uiState = MutableStateFlow(
         DesignStudioUiState(
@@ -56,41 +61,51 @@ class DesignStudioViewModel @Inject constructor(
 
     fun addSticker(text: String, bgColor: Color) {
         saveForUndo()
+        val docCx = _uiState.value.canvasWidth / 2f
+        val docCy = _uiState.value.canvasHeight / 2f
+
         val shape = ShapeElement(
             id = "shape_${UUID.randomUUID().toString().take(6)}",
-            x = 120f,
-            y = 120f,
-            width = 140f,
-            height = 44f,
+            x = docCx,
+            y = docCy,
+            width = 380f,
+            height = 110f,
             fillColor = bgColor,
             shapeType = ShapeType.ROUNDED_RECTANGLE,
-            cornerRadius = 12f
+            cornerRadius = 28f
         )
         val label = TextElement(
             id = "txt_${UUID.randomUUID().toString().take(6)}",
             text = text,
-            x = 130f,
-            y = 132f,
-            fontSizeSp = 13f,
+            x = docCx,
+            y = docCy,
+            fontSizeSp = 32f,
             color = Color.White,
             isBold = true
         )
         _uiState.update { it.copy(elements = it.elements + shape + label, selectedElementId = label.id) }
+        ensureProjectCreated()
+        persistAutosave()
     }
 
     fun addImageElement(filePath: String) {
         saveForUndo()
         val bitmap = android.graphics.BitmapFactory.decodeFile(filePath) ?: return
+        val docCx = _uiState.value.canvasWidth / 2f
+        val docCy = _uiState.value.canvasHeight / 2f
+
         val newElement = com.creatorsclub.engine.canvas.model.ImageElement(
             id = "img_${UUID.randomUUID().toString().take(6)}",
-            x = 100f,
-            y = 100f,
-            width = 160f,
-            height = 160f * (bitmap.height.toFloat() / bitmap.width.toFloat().coerceAtLeast(1f)),
+            x = docCx,
+            y = docCy,
+            width = 400f,
+            height = 400f * (bitmap.height.toFloat() / bitmap.width.toFloat().coerceAtLeast(1f)),
             bitmap = bitmap,
             assetUri = filePath
         )
         _uiState.update { it.copy(elements = it.elements + newElement, selectedElementId = newElement.id) }
+        ensureProjectCreated()
+        persistAutosave()
     }
 
     fun addImageFromUri(uri: android.net.Uri) {
@@ -119,16 +134,20 @@ class DesignStudioViewModel @Inject constructor(
             }
             state.copy(elements = updated)
         }
+        persistAutosave()
     }
 
     fun addText(text: String, isHeading: Boolean = false) {
         saveForUndo()
+        val docCx = _uiState.value.canvasWidth / 2f
+        val docCy = _uiState.value.canvasHeight / 2f
+
         val newElement = TextElement(
             id = "txt_${UUID.randomUUID().toString().take(6)}",
             text = text,
-            x = 160f,
-            y = 160f,
-            fontSizeSp = if (isHeading) 36f else 22f,
+            x = docCx,
+            y = docCy,
+            fontSizeSp = if (isHeading) 52f else 32f,
             isBold = isHeading,
             color = Color(0xFF182033)
         )
@@ -138,18 +157,23 @@ class DesignStudioViewModel @Inject constructor(
                 selectedElementId = newElement.id
             )
         }
+        ensureProjectCreated()
+        persistAutosave()
     }
 
     fun addShape(type: ShapeType, color: Color) {
         saveForUndo()
+        val docCx = _uiState.value.canvasWidth / 2f
+        val docCy = _uiState.value.canvasHeight / 2f
+
         val newShape = ShapeElement(
             id = "shape_${UUID.randomUUID().toString().take(6)}",
             shapeType = type,
             fillColor = color,
-            x = 160f,
-            y = 160f,
-            width = 120f,
-            height = 80f
+            x = docCx,
+            y = docCy,
+            width = 360f,
+            height = 240f
         )
         _uiState.update {
             it.copy(
@@ -157,10 +181,13 @@ class DesignStudioViewModel @Inject constructor(
                 selectedElementId = newShape.id
             )
         }
+        ensureProjectCreated()
+        persistAutosave()
     }
 
     fun setBackgroundColor(color: Color) {
         _uiState.update { it.copy(backgroundColor = color) }
+        persistAutosave()
     }
 
     fun deleteSelectedElement() {
@@ -172,40 +199,72 @@ class DesignStudioViewModel @Inject constructor(
                 selectedElementId = null
             )
         }
+        persistAutosave()
     }
+
+    // --- Inline Text Editing ---
+
+    fun startEditingText(elementId: String) {
+        val element = _uiState.value.elements.find { it.id == elementId } as? TextElement
+        _uiState.update { it.copy(editingTextElement = element) }
+    }
+
+    fun dismissTextEditing() {
+        _uiState.update { it.copy(editingTextElement = null) }
+    }
+
+    fun updateEditingText(text: String, fontSizeSp: Float, isBold: Boolean, color: Color) {
+        val editing = _uiState.value.editingTextElement ?: return
+        saveForUndo()
+        _uiState.update { state ->
+            val updated = state.elements.map { el ->
+                if (el.id == editing.id && el is TextElement) {
+                    el.copy(text = text, fontSizeSp = fontSizeSp, isBold = isBold, color = color)
+                } else el
+            }
+            state.copy(elements = updated, editingTextElement = null)
+        }
+        persistAutosave()
+    }
+
+    // --- Template Loading in Canonical Document Coordinates ---
 
     fun loadTemplate(template: DesignTemplate) {
         saveForUndo()
         val newElements = mutableListOf<CanvasElement>()
 
-        // Add shapes
+        // Add shapes with true document coordinates: centerX = spec.x + spec.width / 2f
         template.rawShapeElements.forEach { spec ->
             val shapeType = when (spec.shapeType) {
                 "CIRCLE" -> ShapeType.CIRCLE
                 "BADGE_STAR" -> ShapeType.BADGE_STAR
                 else -> ShapeType.ROUNDED_RECTANGLE
             }
+            val centerX = spec.x + spec.width / 2f
+            val centerY = spec.y + spec.height / 2f
+
             newElements.add(
                 ShapeElement(
                     id = spec.id,
-                    x = spec.x * 0.35f, // Scaled for mobile design canvas
-                    y = spec.y * 0.35f,
-                    width = spec.width * 0.35f,
-                    height = spec.height * 0.35f,
+                    x = centerX,
+                    y = centerY,
+                    width = spec.width,
+                    height = spec.height,
                     fillColor = Color(AndroidColor.parseColor(spec.fillColorHex)),
-                    shapeType = shapeType
+                    shapeType = shapeType,
+                    cornerRadius = spec.cornerRadius
                 )
             )
         }
 
-        // Add texts
+        // Add texts with true document coordinates
         template.rawTextElements.forEach { spec ->
             newElements.add(
                 TextElement(
                     id = spec.id,
                     text = spec.text,
-                    x = spec.x * 0.35f,
-                    y = spec.y * 0.35f,
+                    x = spec.x,
+                    y = spec.y,
                     fontSizeSp = spec.fontSizeSp,
                     color = Color(AndroidColor.parseColor(spec.colorHex)),
                     isBold = spec.isBold,
@@ -225,7 +284,12 @@ class DesignStudioViewModel @Inject constructor(
                 selectedElementId = null
             )
         }
+
+        ensureProjectCreated()
+        persistAutosave()
     }
+
+    // --- Undo / Redo ---
 
     private fun saveForUndo() {
         undoStack.push(_uiState.value.elements)
@@ -245,6 +309,7 @@ class DesignStudioViewModel @Inject constructor(
                     canRedo = true
                 )
             }
+            persistAutosave()
         }
     }
 
@@ -260,8 +325,86 @@ class DesignStudioViewModel @Inject constructor(
                     canRedo = redoStack.isNotEmpty()
                 )
             }
+            persistAutosave()
         }
     }
+
+    // --- Favorites & Soft Deletion (5-Day Retention) ---
+
+    fun setShowTrashConfirmDialog(show: Boolean) {
+        _uiState.update { it.copy(showTrashConfirmDialog = show) }
+    }
+
+    fun toggleFavorite() {
+        val newFav = !_uiState.value.isFavorite
+        _uiState.update { it.copy(isFavorite = newFav) }
+        val projectId = _uiState.value.projectId ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            projectDao.setFavorite(projectId, newFav)
+        }
+    }
+
+    fun trashProject() {
+        val projectId = _uiState.value.projectId ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            projectDao.softDeleteProject(projectId)
+            _uiState.update {
+                it.copy(
+                    isProjectTrashed = true,
+                    showTrashConfirmDialog = false
+                )
+            }
+        }
+    }
+
+    // --- Room Persistence ---
+
+    private fun ensureProjectCreated() {
+        if (_uiState.value.projectId != null) return
+        val newId = UUID.randomUUID().toString()
+        _uiState.update { it.copy(projectId = newId) }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val entity = ProjectEntity(
+                projectId = newId,
+                name = "Design Project",
+                studioType = "DESIGN",
+                createdAt = System.currentTimeMillis(),
+                modifiedAt = System.currentTimeMillis(),
+                canvasWidth = _uiState.value.canvasWidth,
+                canvasHeight = _uiState.value.canvasHeight,
+                aspectRatio = "${_uiState.value.canvasWidth}:${_uiState.value.canvasHeight}",
+                thumbnailPath = "",
+                projectFilePath = "",
+                isFavorite = _uiState.value.isFavorite,
+                isDeleted = false,
+                deletedAt = null
+            )
+            projectDao.insertProject(entity)
+        }
+    }
+
+    private fun persistAutosave() {
+        val projectId = _uiState.value.projectId ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            val existing = projectDao.getProjectById(projectId) ?: return@launch
+            val updated = existing.copy(
+                modifiedAt = System.currentTimeMillis(),
+                isFavorite = _uiState.value.isFavorite
+            )
+            projectDao.updateProject(updated)
+        }
+    }
+
+    fun dismissExportMessage() {
+        _uiState.update { it.copy(exportSuccessUri = null) }
+    }
+
+    fun dismissErrorMessage() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    // --- Export Pipeline ---
 
     fun exportDesign() {
         viewModelScope.launch {

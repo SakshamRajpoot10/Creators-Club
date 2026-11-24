@@ -1,6 +1,7 @@
 package com.creatorsclub.feature.design
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -21,12 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.creatorsclub.core.designsystem.theme.KreaviloColors
 import com.creatorsclub.engine.canvas.model.DesignTemplate
 import com.creatorsclub.engine.canvas.model.ShapeType
 import com.creatorsclub.engine.canvas.ui.InteractiveDesignCanvas
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,54 +40,102 @@ fun DesignStudioScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // Auto-navigate back if project was soft-deleted to Trash
+    LaunchedEffect(uiState.isProjectTrashed) {
+        if (uiState.isProjectTrashed) {
+            onNavigateBack()
+        }
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Design Studio",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = KreaviloColors.TextPrimary
-                        ),
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = KreaviloColors.TextPrimary)
-                    }
-                },
-                actions = {
-                    if (uiState.selectedElementId != null) {
-                        IconButton(onClick = { viewModel.deleteSelectedElement() }) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "Delete", tint = KreaviloColors.Error)
+            Surface(
+                color = KreaviloColors.Surface,
+                shadowElevation = 2.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(onClick = onNavigateBack, modifier = Modifier.size(44.dp)) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = KreaviloColors.TextPrimary)
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Design Studio",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = KreaviloColors.TextPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Favorite Star
+                            IconButton(onClick = { viewModel.toggleFavorite() }, modifier = Modifier.size(40.dp)) {
+                                Icon(
+                                    imageVector = if (uiState.isFavorite) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                    contentDescription = "Favorite",
+                                    tint = if (uiState.isFavorite) Color(0xFFFFB300) else KreaviloColors.TextSecondary
+                                )
+                            }
+
+                            // Delete selected element OR move project to Trash
+                            if (uiState.selectedElementId != null) {
+                                IconButton(onClick = { viewModel.deleteSelectedElement() }, modifier = Modifier.size(40.dp)) {
+                                    Icon(Icons.Outlined.Delete, contentDescription = "Delete Element", tint = KreaviloColors.Error)
+                                }
+                            } else {
+                                IconButton(onClick = { viewModel.setShowTrashConfirmDialog(true) }, modifier = Modifier.size(40.dp)) {
+                                    Icon(Icons.Outlined.Delete, contentDescription = "Move to Trash", tint = KreaviloColors.Error)
+                                }
+                            }
+
+                            // Undo
+                            IconButton(onClick = { viewModel.undo() }, enabled = uiState.canUndo, modifier = Modifier.size(40.dp)) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Undo,
+                                    contentDescription = "Undo",
+                                    tint = if (uiState.canUndo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary
+                                )
+                            }
+
+                            // Redo
+                            IconButton(onClick = { viewModel.redo() }, enabled = uiState.canRedo, modifier = Modifier.size(40.dp)) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Redo,
+                                    contentDescription = "Redo",
+                                    tint = if (uiState.canRedo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary
+                                )
+                            }
+
+                            // Export Button
+                            Button(
+                                onClick = { viewModel.exportDesign() },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                modifier = Modifier.height(36.dp)
+                            ) {
+                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Export", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
-
-                    IconButton(onClick = { viewModel.undo() }, enabled = uiState.canUndo) {
-                        Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo", tint = if (uiState.canUndo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary)
-                    }
-
-                    IconButton(onClick = { viewModel.redo() }, enabled = uiState.canRedo) {
-                        Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo", tint = if (uiState.canRedo) KreaviloColors.TextPrimary else KreaviloColors.TextTertiary)
-                    }
-
-                    Button(
-                        onClick = { viewModel.exportDesign() },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Export", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = KreaviloColors.Surface)
-            )
+                }
+            }
         },
         bottomBar = {
             Column(
@@ -97,7 +148,7 @@ fun DesignStudioScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
                     when (uiState.activeTab) {
                         DesignStudioTab.TEMPLATES -> TemplatesCarousel(
@@ -126,11 +177,12 @@ fun DesignStudioScreen(
 
                 HorizontalDivider(color = KreaviloColors.Border)
 
-                // Main Studio Tabs
-                TabRow(
+                // Main Studio Tabs: Replaced broken TabRow with ScrollableTabRow to prevent Templ/ates and Eleme/nts word breaking
+                ScrollableTabRow(
                     selectedTabIndex = uiState.activeTab.ordinal,
                     containerColor = KreaviloColors.Surface,
                     contentColor = KreaviloColors.Primary,
+                    edgePadding = 12.dp,
                     indicator = { tabPositions ->
                         TabRowDefaults.SecondaryIndicator(
                             modifier = Modifier.tabIndicatorOffset(tabPositions[uiState.activeTab.ordinal]),
@@ -141,32 +193,32 @@ fun DesignStudioScreen(
                     Tab(
                         selected = uiState.activeTab == DesignStudioTab.TEMPLATES,
                         onClick = { viewModel.selectTab(DesignStudioTab.TEMPLATES) },
-                        text = { Text("Templates", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                        icon = { Icon(Icons.Outlined.GridView, contentDescription = null, modifier = Modifier.size(20.dp)) }
+                        text = { Text("Templates", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) },
+                        icon = { Icon(Icons.Outlined.GridView, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     )
                     Tab(
                         selected = uiState.activeTab == DesignStudioTab.TEXT,
                         onClick = { viewModel.selectTab(DesignStudioTab.TEXT) },
-                        text = { Text("Text", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                        icon = { Icon(Icons.Outlined.TextFields, contentDescription = null, modifier = Modifier.size(20.dp)) }
+                        text = { Text("Text", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) },
+                        icon = { Icon(Icons.Outlined.TextFields, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     )
                     Tab(
                         selected = uiState.activeTab == DesignStudioTab.SHAPES,
                         onClick = { viewModel.selectTab(DesignStudioTab.SHAPES) },
-                        text = { Text("Elements", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                        icon = { Icon(Icons.Outlined.Category, contentDescription = null, modifier = Modifier.size(20.dp)) }
+                        text = { Text("Elements", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) },
+                        icon = { Icon(Icons.Outlined.Category, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     )
                     Tab(
                         selected = uiState.activeTab == DesignStudioTab.STICKERS,
                         onClick = { viewModel.selectTab(DesignStudioTab.STICKERS) },
-                        text = { Text("Stickers", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                        icon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp)) }
+                        text = { Text("Stickers", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) },
+                        icon = { Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     )
                     Tab(
                         selected = uiState.activeTab == DesignStudioTab.BACKGROUND,
                         onClick = { viewModel.selectTab(DesignStudioTab.BACKGROUND) },
-                        text = { Text("Background", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                        icon = { Icon(Icons.Outlined.ColorLens, contentDescription = null, modifier = Modifier.size(20.dp)) }
+                        text = { Text("Background", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1) },
+                        icon = { Icon(Icons.Outlined.ColorLens, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     )
                 }
             }
@@ -176,17 +228,18 @@ fun DesignStudioScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFFE5E7EB)),
+                .background(Color(0xFF0F121C)), // Dark backdrop for visual canvas focus
             contentAlignment = Alignment.Center
         ) {
-            // Interactive 340x340 dp canvas preview container
+            // Interactive canvas with true document coordinate system (fixes (0,0) pile-up)
             InteractiveDesignCanvas(
                 elements = uiState.elements,
                 selectedElementId = uiState.selectedElementId,
                 backgroundColor = uiState.backgroundColor,
-                canvasWidthDp = 340,
-                canvasHeightDp = 340,
+                documentWidth = uiState.canvasWidth,
+                documentHeight = uiState.canvasHeight,
                 onSelectElement = { viewModel.selectElement(it) },
+                onDoubleTapElement = { viewModel.startEditingText(it) },
                 onUpdateElementTransform = { id, x, y -> viewModel.updateElementPosition(id, x, y) }
             )
 
@@ -194,6 +247,91 @@ fun DesignStudioScreen(
                 CircularProgressIndicator(color = KreaviloColors.Primary)
             }
         }
+    }
+
+    // --- Inline Text Editor Dialog ---
+    uiState.editingTextElement?.let { textElement ->
+        var currentText by remember(textElement.id) { mutableStateOf(textElement.text) }
+        var currentSize by remember(textElement.id) { mutableFloatStateOf(textElement.fontSizeSp) }
+        var isBold by remember(textElement.id) { mutableStateOf(textElement.isBold) }
+        var currentColor by remember(textElement.id) { mutableStateOf(textElement.color) }
+
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissTextEditing() },
+            title = { Text("Edit Text", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = currentText,
+                        onValueChange = { currentText = it },
+                        label = { Text("Text Content") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text("Font Size: ${currentSize.toInt()} sp", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Slider(
+                        value = currentSize,
+                        onValueChange = { currentSize = it },
+                        valueRange = 14f..96f,
+                        colors = SliderDefaults.colors(thumbColor = KreaviloColors.Primary, activeTrackColor = KreaviloColors.Primary)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Bold Font", fontSize = 13.sp)
+                        Switch(
+                            checked = isBold,
+                            onCheckedChange = { isBold = it },
+                            colors = SwitchDefaults.colors(checkedThumbColor = KreaviloColors.Primary)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.updateEditingText(currentText, currentSize, isBold, currentColor)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Primary)
+                ) {
+                    Text("Apply")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissTextEditing() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // --- Trash Confirmation Dialog ---
+    if (uiState.showTrashConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.setShowTrashConfirmDialog(false) },
+            title = { Text("Move Project to Trash?", fontWeight = FontWeight.Bold) },
+            text = { Text("This design will be moved to Projects → Trash and retained for 5 days before permanent cleanup.") },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.trashProject() },
+                    colors = ButtonDefaults.buttonColors(containerColor = KreaviloColors.Error)
+                ) {
+                    Text("Move to Trash")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.setShowTrashConfirmDialog(false) }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -209,8 +347,8 @@ fun TemplatesCarousel(
         items(templates) { tmpl ->
             Card(
                 modifier = Modifier
-                    .width(140.dp)
-                    .height(70.dp)
+                    .width(150.dp)
+                    .height(72.dp)
                     .clickable { onSelectTemplate(tmpl) },
                 shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = KreaviloColors.SurfaceVariant)
@@ -232,7 +370,8 @@ fun TemplatesCarousel(
                     Text(
                         text = tmpl.category.displayName,
                         fontSize = 9.sp,
-                        color = KreaviloColors.Primary
+                        color = KreaviloColors.Primary,
+                        maxLines = 1
                     )
                 }
             }
@@ -319,6 +458,72 @@ fun ShapeControlsRow(
 }
 
 @Composable
+fun StickersControlsRow(
+    importedStickers: List<File>,
+    onAddBadge: (String, Color) -> Unit,
+    onAddImportedSticker: (String) -> Unit,
+    onImportNewSticker: (android.net.Uri) -> Unit
+) {
+    val stickerPicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let { onImportNewSticker(it) }
+    }
+
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        item {
+            OutlinedButton(
+                onClick = { stickerPicker.launch("image/*") },
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.height(34.dp)
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Import Asset", fontSize = 11.sp)
+            }
+        }
+        item {
+            Button(
+                onClick = { onAddBadge("BESTSELLER", Color(0xFFB83C49)) },
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB83C49)),
+                modifier = Modifier.height(34.dp)
+            ) {
+                Text("Bestseller", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        item {
+            Button(
+                onClick = { onAddBadge("NEW ARRIVAL", Color(0xFF237A57)) },
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF237A57)),
+                modifier = Modifier.height(34.dp)
+            ) {
+                Text("New Arrival", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        items(importedStickers) { file ->
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = KreaviloColors.SurfaceVariant,
+                modifier = Modifier
+                    .height(34.dp)
+                    .clickable { onAddImportedSticker(file.absolutePath) }
+            ) {
+                Text(
+                    text = file.nameWithoutExtension.take(10),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun BackgroundColorPickerRow(
     onSelectColor: (Color) -> Unit
 ) {
@@ -343,74 +548,9 @@ fun BackgroundColorPickerRow(
                     .size(36.dp)
                     .clip(CircleShape)
                     .background(color)
+                    .border(1.dp, Color(0xFFD1D5DB), CircleShape)
                     .clickable { onSelectColor(color) }
             )
-        }
-    }
-}
-
-@Composable
-fun StickersControlsRow(
-    importedStickers: List<java.io.File>,
-    onAddBadge: (String, Color) -> Unit,
-    onAddImportedSticker: (String) -> Unit,
-    onImportNewSticker: (android.net.Uri) -> Unit = {}
-) {
-    val stickerPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
-    ) { uri: android.net.Uri? ->
-        uri?.let { onImportNewSticker(it) }
-    }
-
-    val curatedBadges = listOf(
-        Pair("🔥 TRENDING", Color(0xFFEF4444)),
-        Pair("⭐ BEST VALUE", Color(0xFFF59E0B)),
-        Pair("🏷️ 50% OFF", Color(0xFF10B981)),
-        Pair("✨ NEW ARRIVAL", Color(0xFF6366F1)),
-        Pair("🚀 CREATOR CLUB", Color(0xFF405BC7)),
-        Pair("⚡ LIMITED", Color(0xFF8B5CF6))
-    )
-
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        item {
-            OutlinedButton(
-                onClick = { stickerPickerLauncher.launch("image/*") },
-                shape = RoundedCornerShape(20.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Import Sticker", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        items(curatedBadges) { (label, color) ->
-            Button(
-                onClick = { onAddBadge(label, color) },
-                colors = ButtonDefaults.buttonColors(containerColor = color),
-                shape = RoundedCornerShape(20.dp),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            }
-        }
-
-        items(importedStickers) { stickerFile ->
-            Card(
-                modifier = Modifier
-                    .height(38.dp)
-                    .clickable { onAddImportedSticker(stickerFile.absolutePath) },
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = KreaviloColors.SurfaceVariant)
-            ) {
-                Box(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), contentAlignment = Alignment.Center) {
-                    Text("📁 ${stickerFile.name.take(12)}", fontSize = 11.sp, color = KreaviloColors.TextPrimary)
-                }
-            }
         }
     }
 }
